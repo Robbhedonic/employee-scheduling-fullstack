@@ -20,8 +20,6 @@ See each project's README for details:
 
 ## Quickstart
 
-### Database
-
 ### Backend
 
 ```bash
@@ -72,6 +70,7 @@ Use conventional commit types: `feat`, `fix`, `refactor`, `chore`, `docs`, `styl
 Both projects use ESLint + Prettier. Run before committing:
 
 ```bash
+cd backend   # or cd frontend
 npm run lint        # check for issues
 npm run lint:fix    # auto-fix
 ```

@@ -30,11 +30,21 @@ cp .env-example .env
 
 The `.env` file is gitignored — never commit it.
 
-#### Variables
+#### App variables
 
 - **PORT** — port the Express server runs on (default `3000`)
-- **DATABASE_URL** — PostgreSQL connection string that Prisma uses to connect to the database. Format: `postgresql://USER:PASSWORD@HOST:PORT/DB_NAME`
-- **JWT_SECRET** — secret key used to sign and verify JWT auth tokens. Use any random string. Keep it private — anyone with this value can forge tokens.
+- **DATABASE_URL** — PostgreSQL connection string that Prisma uses to connect. Format: `postgresql://USER:PASSWORD@HOST:PORT/DB_NAME`
+- **JWT_SECRET** — secret key for signing/verifying JWT auth tokens. Keep it private.
+
+#### Docker Compose variables (used by `compose.yml`)
+
+- **POSTGRES_USER** — database user (default `root`)
+- **POSTGRES_PASSWORD** — database password (default `root`)
+- **POSTGRES_DB** — database name (default `employee_scheduling`)
+- **POSTGRES_PORT** — host port mapped to PostgreSQL (default `5433`)
+- **PGADMIN_EMAIL** — pgAdmin login email
+- **PGADMIN_PASSWORD** — pgAdmin login password
+- **PGADMIN_PORT** — host port mapped to pgAdmin (default `8080`)
 
 ### 4. Run the dev server
 

@@ -12,7 +12,7 @@
 
 - Log in
 - View all employees
-- Register new employees (with a login code)
+- Register new employees (employer sets an initial password)
 - View and manage the **Job Schedule** — assign employees to shifts (weekly grid: days × shifts)
 - View **Work Schedule** per employee
 
@@ -67,8 +67,8 @@ ScheduleEntry is the **output** (employer decision).
 ## Data Models (minimum)
 
 - **User** — with role: `employer` | `employee`
-- **Employee** — linked to User; fields: name, email, phone, photo/avatar, position
-- **Shift** — morning / afternoon / night
+- **Employee** — linked to User; fields: firstName, lastName, email, phone, avatar, position
+- **ShiftType** — enum: `MORNING` / `AFTERNOON` / `NIGHT` (not a separate table)
 - **Availability** — boolean per day/shift (is the employee available for a given shift on a given day)
 - **ScheduleEntry** — who works which shift on which day
 
@@ -117,38 +117,20 @@ A frontend must connect to the API. It lives in a separate folder in the repo.
 
 ### Backend
 
-- **[Setup] Initialize TypeScript + Express project**
-  Scaffold project with `package.json`, `tsconfig.json`, Express server entry point, dev scripts.
+- **[Setup] Configure Prisma and define schema**
+  Install Prisma, configure database connection, create all models (User, Employee, Availability, ScheduleEntry) with correct relations, run migration, generate client. Add a seed script with test data (employer + a few employees).
 
-- **[Setup] Configure Prisma and connect to database**
-  Install Prisma, initialize schema file, configure database connection, verify `prisma db push` works.
+- **[Auth] Login endpoint + role-based access middleware**
+  POST /auth/login — accepts credentials, returns JWT. Auth middleware that verifies token and attaches user info. Role middleware that restricts endpoints by role (employer/employee).
 
-- **[Setup] Define Prisma schema (User, Employee, Shift, Availability, Schedule)**
-  Create all models with correct relations, run migration, generate Prisma client.
+- **[Feature] Employee management endpoints**
+  GET /employees (list all, employer only), POST /employees (create user + profile, employer sets initial password), GET /employees/:id (single profile, employer only).
 
-- **[Auth] POST /auth/login — JWT or session-based login**
-  Accepts credentials, returns a token/session. Works for both employer and employee roles.
+- **[Feature] Availability endpoints**
+  GET /availability/:employeeId (view availability, both roles — employee can only view own). PUT /availability/:employeeId (set own availability, employee only). Supports filtering by week/date range.
 
-- **[Auth] Middleware for role-based access control**
-  Auth middleware that verifies token and checks user role. Rejects unauthorized requests with proper status codes.
-
-- **[Feature] GET /employees — list all employees (employer only)**
-  Returns all employee profiles. Employer-only access.
-
-- **[Feature] POST /employees — register new employee (employer only)**
-  Creates a new User (employee role) + Employee profile. Employer sets an initial password for the employee.
-
-- **[Feature] GET /availability/:id — get employee availability**
-  Returns availability entries for a given employee. Supports filtering by week/date range.
-
-- **[Feature] PUT /availability/:id — employee sets own availability**
-  Employee toggles their available shifts for specific days. Only the employee themselves can update.
-
-- **[Feature] GET /schedule — view full job schedule**
-  Returns schedule entries (who works which shift on which day). Supports filtering by week/date range.
-
-- **[Feature] PUT /schedule — employer assigns employees to shifts**
-  Employer creates or updates schedule entries, assigning employees to specific day/shift slots.
+- **[Feature] Schedule endpoints**
+  GET /schedule (view schedule, both roles — employee sees own shifts only). PUT /schedule (assign employees to shifts, employer only). Supports filtering by week/date range.
 
 - **[Polish] Add Zod validation to all POST/PUT endpoints**
   Define Zod schemas as the single source of truth for every request body. Derive TypeScript types from them with `z.infer`. Return clear 400 errors on invalid input.
@@ -164,20 +146,17 @@ A frontend must connect to the API. It lives in a separate folder in the repo.
 
 ### Frontend
 
-- **[Frontend] Employer — Login page**
-  Login form, authenticates against API, stores token, redirects to employee list.
+- **[Frontend] Login page**
+  Single login form for both roles. Authenticates against API, stores token, redirects based on role (employer → employee list, employee → availability view).
 
 - **[Frontend] Employer — Employee list page**
   Card grid showing all employees (name, photo, position). Links to individual schedule views.
 
 - **[Frontend] Employer — Register new employee form**
-  Form with fields: name, email, phone, position. Calls POST /employees and shows the generated login code.
+  Form with fields: name, email, password, phone, position. Calls POST /employees.
 
 - **[Frontend] Employer — Job schedule view + assign shifts**
   Weekly grid (days × shifts). Employer can assign employees to shift slots. Calls PUT /schedule.
-
-- **[Frontend] Employee — Login page**
-  Login form using employee credentials/login code, redirects to availability view.
 
 - **[Frontend] Employee — Set availability view**
   Weekly grid where employee toggles available shifts. Modal for per-day shift selection. Calls PUT /availability.
