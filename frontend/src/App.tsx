@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/button';
 
 function App() {
   return (
@@ -8,7 +8,7 @@ function App() {
         <Button>Get started</Button>
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
