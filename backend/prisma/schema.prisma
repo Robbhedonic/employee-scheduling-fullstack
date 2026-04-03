@@ -1,0 +1,72 @@
+// Prisma schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  EMPLOYER
+  EMPLOYEE
+}
+
+enum ShiftType {
+  MORNING
+  AFTERNOON
+  NIGHT
+}
+
+model User {
+  id Int @id @default(autoincrement())
+  name String
+  email String @unique
+  passwordHash String
+  role Role 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Employee {
+  id Int @id @default(autoincrement())
+  userId String @unique
+  firstName String
+  lastName String
+  phone String?
+  position String?
+  avatar String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  availabilities Availability[]
+  scheduleEntries ScheduleEntry[]
+}
+
+model Availability {
+  id String @id @default(uuid())
+  employeeId Int 
+  date DateTime @db.Date
+  shiftType ShiftType 
+  isAvailable Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@unique([employeeId, date, shiftType]) 
+}
+
+model ScheduleEntry {
+  id Int @id @default(autoincrement())
+  employeeId Int 
+  date DateTime @db.Date
+  shiftType ShiftType 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  employee Employee @relation(fields: [employeeId], references: [id])
+  @@unique([employeeId, date, shiftType])
+
+}
