@@ -8,6 +8,8 @@ import type { UpdateAvailabilityInput } from '../schema.js';
 type GetAvailabilityParams = {
   employeeId: string;
   weekOf?: string;
+  startDate?: string;
+  endDate?: string;
 };
 
 type UpdateAvailabilityParams = {
@@ -32,15 +34,28 @@ export async function getAvailability(params: GetAvailabilityParams) {
     throw new Error('Employee not found');
   }
 
-  const where = params.weekOf
-    ? (() => {
-        const { start, end } = getWeekRange(params.weekOf);
-        return {
-          employeeId: params.employeeId,
-          date: { gte: start, lte: end },
-        };
-      })()
-    : { employeeId: params.employeeId };
+  const where = (() => {
+    if (params.weekOf) {
+      const { start, end } = getWeekRange(params.weekOf);
+      return {
+        employeeId: params.employeeId,
+        date: { gte: start, lte: end },
+      };
+    }
+
+    if (params.startDate || params.endDate) {
+      const dateRange: { gte?: Date; lte?: Date } = {};
+      if (params.startDate) dateRange.gte = new Date(params.startDate);
+      if (params.endDate) dateRange.lte = new Date(params.endDate);
+
+      return {
+        employeeId: params.employeeId,
+        date: dateRange,
+      };
+    }
+
+    return { employeeId: params.employeeId };
+  })();
 
   const availability = await prisma.availability.findMany({
     where,

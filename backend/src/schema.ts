@@ -20,6 +20,18 @@ export type LoginInput = z.infer<typeof loginSchema>;
 
 const shiftTypeSchema = z.enum(['MORNING', 'AFTERNOON', 'NIGHT']);
 
+export const createEmployeeSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  email: z.string().email(),
+  password: z.string().min(1),
+  phone: z.string().min(1).optional(),
+  position: z.string().min(1).optional(),
+  avatar: z.string().url().optional(),
+});
+
+export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>;
+
 export const updateAvailabilitySchema = z.object({
   entries: z
     .array(

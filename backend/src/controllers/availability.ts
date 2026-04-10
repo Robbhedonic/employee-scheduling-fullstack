@@ -25,6 +25,10 @@ export const get: RequestHandler<{ employeeId: string }> = async (req, res) => {
     const { employeeId } = req.params;
     const weekOf =
       typeof req.query.weekOf === 'string' ? req.query.weekOf : undefined;
+    const startDate =
+      typeof req.query.startDate === 'string' ? req.query.startDate : undefined;
+    const endDate =
+      typeof req.query.endDate === 'string' ? req.query.endDate : undefined;
 
     if (req.user.role === 'EMPLOYEE') {
       const canAccess = await employeeOwnsAvailability(
@@ -40,6 +44,8 @@ export const get: RequestHandler<{ employeeId: string }> = async (req, res) => {
     const result = await availabilityService.getAvailability({
       employeeId,
       weekOf,
+      startDate,
+      endDate,
     });
     res.status(200).json(result);
   } catch (error) {

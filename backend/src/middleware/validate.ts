@@ -8,7 +8,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 
-export function validate(schema: z.ZodType<unknown>) {
+export function validate(schema: z.ZodTypeAny) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const result = schema.safeParse(req.body);
 

@@ -1,62 +1,92 @@
-import type { Request, Response } from 'express';
-import * as employeeService from '../services/employees.js';
+import type { RequestHandler } from 'express';
+import {
+  createEmployeeRecord,
+  getAllEmployees,
+  getEmployeeById,
+} from '../services/employees.js';
 
-export const getAllEmployees = async (req: Request, res: Response) => {
+export const getAll: RequestHandler = async (_req, res) => {
   try {
-    const employees = await employeeService.getAllEmployees();
-    res.json(employees);
+    const employees = await getAllEmployees();
+    res.status(200).json({ employees });
   } catch {
-    res.status(500).json({ error: 'Failed to fetch employees' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
-export const createEmployee = async (req: Request, res: Response) => {
+type CreateEmployeeBody = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  phone?: string;
+  position?: string;
+  avatar?: string;
+};
+
+function parseCreateEmployeeBody(body: unknown): CreateEmployeeBody | null {
+  if (!body || typeof body !== 'object') return null;
+  const value = body as Record<string, unknown>;
+
+  const firstName = value.firstName;
+  const lastName = value.lastName;
+  const email = value.email;
+  const password = value.password;
+  const phone = value.phone;
+  const position = value.position;
+  const avatar = value.avatar;
+
+  if (typeof firstName !== 'string' || firstName.trim() === '') return null;
+  if (typeof lastName !== 'string' || lastName.trim() === '') return null;
+  if (typeof email !== 'string' || !email.includes('@')) return null;
+  if (typeof password !== 'string' || password.trim() === '') return null;
+  if (phone !== undefined && typeof phone !== 'string') return null;
+  if (position !== undefined && typeof position !== 'string') return null;
+  if (avatar !== undefined && typeof avatar !== 'string') return null;
+
+  return {
+    firstName,
+    lastName,
+    email,
+    password,
+    phone,
+    position,
+    avatar,
+  };
+}
+
+export const create: RequestHandler = async (req, res) => {
   try {
-    const {
-      name,
-      email,
-      role,
-      password,
-      firstName,
-      lastName,
-      phone,
-      position,
-      avatar,
-    } = req.body as {
-      name: string;
-      email: string;
-      role: 'EMPLOYER' | 'EMPLOYEE';
-      password: string;
-      firstName: string;
-      lastName: string;
-      phone?: string;
-      position?: string;
-      avatar: string;
-    };
-    const employee = await employeeService.createEmployee({
-      name,
-      email,
-      role,
-      password,
-      firstName,
-      lastName,
-      phone,
-      position,
-      avatar,
-    });
-    res.status(201).json(employee);
-  } catch {
-    res.status(500).json({ error: 'Failed to create employee' });
+    const parsed = parseCreateEmployeeBody(req.body);
+    if (!parsed) {
+      res.status(400).json({ error: 'Validation error' });
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+    const employee = await createEmployeeRecord(parsed);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    res.status(201).json({ employee });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Email already exists') {
+      res.status(409).json({ error: 'Email already exists' });
+      return;
+    }
+
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
-export const getEmployeeById = async (req: Request, res: Response) => {
+export const getById: RequestHandler<{ id: string }> = async (req, res) => {
   try {
-    const { id } = req.params as { id: string };
-    const employee = await employeeService.getEmployeeById(Number(id));
-    if (!employee) return res.status(404).json({ error: 'Employee not found' });
-    res.json(employee);
+    const employee = await getEmployeeById(req.params.id);
+    if (!employee) {
+      res.status(404).json({ error: 'Employee not found' });
+      return;
+    }
+
+    res.status(200).json({ employee });
   } catch {
-    res.status(500).json({ error: 'Failed to fetch employee' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
