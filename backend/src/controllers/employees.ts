@@ -63,9 +63,7 @@ export const create: RequestHandler = async (req, res) => {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
     const employee = await createEmployeeRecord(parsed);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     res.status(201).json({ employee });
   } catch (error) {
     if (error instanceof Error && error.message === 'Email already exists') {
