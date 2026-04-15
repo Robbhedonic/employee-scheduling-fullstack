@@ -30,14 +30,12 @@ export async function login(input: LoginInput): Promise<LoginResult> {
     throw new Error('Invalid credentials');
   }
 
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error('JWT_SECRET is not configured');
-  }
-
-  const token = jwt.sign({ userId: user.id, role: user.role }, secret, {
-    expiresIn: '7d',
-  });
+  // JWT_SECRET presence is guaranteed by the startup check in index.ts.
+  const token = jwt.sign(
+    { userId: user.id, role: user.role },
+    process.env.JWT_SECRET as string,
+    { expiresIn: '7d' },
+  );
 
   return {
     token,

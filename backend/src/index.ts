@@ -7,6 +7,16 @@ import logger from './lib/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 
+// Fail-fast config check. Any required env var missing here should crash
+// the process at startup rather than silently returning 500s per request.
+const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET'] as const;
+for (const key of REQUIRED_ENV) {
+  if (!process.env[key]) {
+    logger.error(`${key} is required but not set. Refusing to start.`);
+    process.exit(1);
+  }
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 

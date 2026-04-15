@@ -38,14 +38,12 @@ export function authenticate(
     return;
   }
 
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    res.status(500).json({ error: 'JWT_SECRET is not configured' });
-    return;
-  }
-
+  // JWT_SECRET presence is guaranteed by the startup check in index.ts.
   try {
-    const decoded = jwt.verify(token, secret) as JwtPayload;
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string,
+    ) as JwtPayload;
     req.user = {
       userId: decoded.userId,
       role: decoded.role,
