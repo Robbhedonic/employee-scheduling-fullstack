@@ -48,7 +48,6 @@ export const createEmployeeRecord = async (
     const created = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
-          name: `${firstName} ${lastName}`,
           email,
           passwordHash,
           role: 'EMPLOYEE',

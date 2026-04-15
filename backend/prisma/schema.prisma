@@ -21,10 +21,9 @@ enum ShiftType {
 
 model User {
   id String @id @default(uuid())
-  name String
   email String @unique
   passwordHash String
-  role Role 
+  role Role
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
