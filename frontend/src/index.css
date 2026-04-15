@@ -128,19 +128,3 @@
     @apply font-sans;
     }
 }
-
-html,
-body,
-#root {
-  min-height: 100%;
-}
-
-body {
-  background-color: #f1f5f9 !important;
-  color: #0f172a !important;
-}
-
-.dark body {
-  background-color: #f1f5f9 !important;
-  color: #0f172a !important;
-}
