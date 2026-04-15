@@ -13,18 +13,22 @@ const prisma = new PrismaClient({ adapter });
 
 type ShiftType = 'MORNING' | 'AFTERNOON' | 'NIGHT';
 
+// Work in UTC so @db.Date columns store the same YYYY-MM-DD regardless of
+// the machine's timezone. Local-time math drifts by one day in timezones
+// east of UTC.
 function getMonday(d: Date): Date {
-  const date = new Date(d);
-  date.setHours(0, 0, 0, 0);
-  const day = date.getDay();
+  const date = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
+  );
+  const day = date.getUTCDay();
   const diff = day === 0 ? -6 : 1 - day;
-  date.setDate(date.getDate() + diff);
+  date.setUTCDate(date.getUTCDate() + diff);
   return date;
 }
 
 function addDays(d: Date, n: number): Date {
   const date = new Date(d);
-  date.setDate(date.getDate() + n);
+  date.setUTCDate(date.getUTCDate() + n);
   return date;
 }
 
