@@ -10,7 +10,7 @@ type EmployeeView = {
   email: string;
   phone: string | null;
   position: string | null;
-  avatar: string;
+  avatar: string | null;
 };
 
 export const getAllEmployees = async (): Promise<EmployeeView[]> => {
@@ -61,7 +61,7 @@ export const createEmployeeRecord = async (
           lastName,
           phone,
           position,
-          avatar: avatar ?? '',
+          avatar: avatar ?? null,
         },
       });
     });
