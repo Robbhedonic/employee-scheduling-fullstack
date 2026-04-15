@@ -1,7 +1,28 @@
-// Global error handler — registered once in index.ts after all routes:
-//   app.use(errorHandler)
+import type { ErrorRequestHandler } from 'express';
+import logger from '../lib/logger.js';
 
-// Catches any error thrown or passed via next(error):
-//   - Known errors (e.g. with a statusCode property): return that status + message
-//   - Unknown errors: log the stack trace, return 500 + generic message
-//   - Always returns JSON: { "error": "message" }
+type AppError = Error & {
+  statusCode?: number;
+};
+
+export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
+  if (res.headersSent) {
+    _next(err);
+    return;
+  }
+
+  const error = err as AppError;
+  const statusCode = error.statusCode ?? 500;
+
+  logger.error('Unhandled request error', {
+    method: req.method,
+    path: req.originalUrl,
+    statusCode,
+    message: error.message,
+    stack: error.stack,
+  });
+
+  res.status(statusCode).json({
+    error: statusCode >= 500 ? 'Internal server error' : error.message,
+  });
+};
