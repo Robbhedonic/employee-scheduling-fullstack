@@ -87,6 +87,7 @@ Integration tests hit a running server via curl. Start the server in another ter
 - `npm run test:auth` - login and role-based auth
 - `npm run test:employees` - `/employees` list, create, get by id
 - `npm run test:availability` - `/availability/:id` get (with filters) + put
+- `npm run test:schedule` - `/schedule` get (with filters, role scoping) + put
 
 ### Quality checks
 
@@ -108,7 +109,8 @@ scripts/
     ├── _common.sh        # Shared helpers (sourced, not run directly)
     ├── test-auth.sh
     ├── test-employees.sh
-    └── test-availability.sh
+    ├── test-availability.sh
+    └── test-schedule.sh
 
 src/
 ├── index.ts              # Entry point - Express app, boot-time config check, mounts routes

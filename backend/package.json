@@ -16,6 +16,7 @@
     "test:auth": "./scripts/api/test-auth.sh",
     "test:employees": "./scripts/api/test-employees.sh",
     "test:availability": "./scripts/api/test-availability.sh",
+    "test:schedule": "./scripts/api/test-schedule.sh",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
