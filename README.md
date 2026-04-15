@@ -25,10 +25,14 @@ See each project's README for details:
 ```bash
 cd backend
 npm install
-cp .env-example .env     # fill in your values
-docker compose up -d     # PostgreSQL on :5433, pgAdmin on :8080
+cp .env-example .env     # defaults work; edit if needed
+npm run db:up            # PostgreSQL on :5433, pgAdmin on :8080
+npm run db:migrate       # apply schema
+npm run db:seed          # load test users and schedule
 npm run dev              # http://localhost:3000
 ```
+
+See the [backend README](backend/README.md) for the full script reference and seeded credentials.
 
 ### Frontend
 
