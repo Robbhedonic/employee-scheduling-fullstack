@@ -1,6 +1,9 @@
 import type { RequestHandler } from 'express';
 import prisma from '../lib/prisma.js';
-import type { UpdateAvailabilityInput } from '../schema.js';
+import {
+  availabilityQuerySchema,
+  type UpdateAvailabilityInput,
+} from '../schema.js';
 import * as availabilityService from '../services/availability.js';
 
 async function employeeOwnsAvailability(
@@ -23,12 +26,16 @@ export const get: RequestHandler<{ employeeId: string }> = async (req, res) => {
     }
 
     const { employeeId } = req.params;
-    const weekOf =
-      typeof req.query.weekOf === 'string' ? req.query.weekOf : undefined;
-    const startDate =
-      typeof req.query.startDate === 'string' ? req.query.startDate : undefined;
-    const endDate =
-      typeof req.query.endDate === 'string' ? req.query.endDate : undefined;
+    const parsedQuery = availabilityQuerySchema.safeParse(req.query);
+    if (!parsedQuery.success) {
+      res.status(400).json({
+        error: 'Validation error',
+        details: parsedQuery.error.flatten(),
+      });
+      return;
+    }
+
+    const { weekOf, startDate, endDate } = parsedQuery.data;
 
     if (req.user.role === 'EMPLOYEE') {
       const canAccess = await employeeOwnsAvailability(

@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express';
-import type { UpdateScheduleInput } from '../schema.js';
+import { scheduleQuerySchema, type UpdateScheduleInput } from '../schema.js';
 import { getSchedule, updateSchedule } from '../services/schedule.js';
 
 export const get: RequestHandler = async (req, res) => {
@@ -9,16 +9,16 @@ export const get: RequestHandler = async (req, res) => {
       return;
     }
 
-    const weekOf =
-      typeof req.query.weekOf === 'string' ? req.query.weekOf : undefined;
-    const startDate =
-      typeof req.query.startDate === 'string' ? req.query.startDate : undefined;
-    const endDate =
-      typeof req.query.endDate === 'string' ? req.query.endDate : undefined;
-    const employeeId =
-      typeof req.query.employeeId === 'string'
-        ? req.query.employeeId
-        : undefined;
+    const parsedQuery = scheduleQuerySchema.safeParse(req.query);
+    if (!parsedQuery.success) {
+      res.status(400).json({
+        error: 'Validation error',
+        details: parsedQuery.error.flatten(),
+      });
+      return;
+    }
+
+    const { weekOf, startDate, endDate, employeeId } = parsedQuery.data;
 
     const result = await getSchedule({
       userId: req.user.userId,

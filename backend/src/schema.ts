@@ -46,6 +46,34 @@ export const updateAvailabilitySchema = z.object({
 
 export type UpdateAvailabilityInput = z.infer<typeof updateAvailabilitySchema>;
 
+export const availabilityQuerySchema = z
+  .object({
+    weekOf: z.string().date().optional(),
+    startDate: z.string().date().optional(),
+    endDate: z.string().date().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.weekOf && (value.startDate || value.endDate)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Use either weekOf or startDate/endDate, not both',
+      });
+    }
+
+    if (value.startDate && value.endDate) {
+      const start = new Date(value.startDate);
+      const end = new Date(value.endDate);
+      if (start > end) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'startDate must be before or equal to endDate',
+        });
+      }
+    }
+  });
+
+export type AvailabilityQueryInput = z.infer<typeof availabilityQuerySchema>;
+
 export const updateScheduleSchema = z.object({
   entries: z
     .array(
@@ -59,3 +87,32 @@ export const updateScheduleSchema = z.object({
 });
 
 export type UpdateScheduleInput = z.infer<typeof updateScheduleSchema>;
+
+export const scheduleQuerySchema = z
+  .object({
+    weekOf: z.string().date().optional(),
+    startDate: z.string().date().optional(),
+    endDate: z.string().date().optional(),
+    employeeId: z.string().uuid().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.weekOf && (value.startDate || value.endDate)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Use either weekOf or startDate/endDate, not both',
+      });
+    }
+
+    if (value.startDate && value.endDate) {
+      const start = new Date(value.startDate);
+      const end = new Date(value.endDate);
+      if (start > end) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'startDate must be before or equal to endDate',
+        });
+      }
+    }
+  });
+
+export type ScheduleQueryInput = z.infer<typeof scheduleQuerySchema>;

@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import * as employeesController from '../controllers/employees.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { createEmployeeSchema } from '../schema.js';
 
 const router = Router();
 
@@ -17,6 +19,7 @@ router.post(
   '/',
   authenticate,
   requireRole('EMPLOYER'),
+  validate(createEmployeeSchema),
   employeesController.create,
 );
 
