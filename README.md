@@ -69,12 +69,23 @@ Use conventional commit types: `feat`, `fix`, `refactor`, `chore`, `docs`, `styl
 - Another team member reviews before merging
 - Reference the issue in the PR description
 
-### Linting
+### Checks
 
-Both projects use ESLint + Prettier. Run before committing:
+Both projects use TypeScript + ESLint + Prettier.
+
+**Backend** (from `backend/`):
 
 ```bash
-cd backend   # or cd frontend
-npm run lint        # check for issues
+npm run check       # typecheck + lint + format, all read-only
+npm run lint:fix    # auto-fix ESLint issues
+npm run format      # auto-fix Prettier issues
+```
+
+**Frontend** (from `frontend/`):
+
+```bash
+npm run lint        # ESLint check
 npm run lint:fix    # auto-fix
 ```
+
+(Frontend doesn't yet have the combined `check` / `typecheck` / `format` scripts. Align with backend when convenient.)

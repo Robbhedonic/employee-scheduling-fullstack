@@ -65,13 +65,13 @@ Starts the server with `tsx watch` - auto-restarts on file changes.
 
 ## Scripts
 
+### Dev
+
 - `npm run dev` - start dev server with hot reload
 - `npm run build` - compile TypeScript to `dist/`
 - `npm run start` - run compiled output (production)
-- `npm run lint` / `lint:fix` - ESLint
-- `npm run format` - Prettier
 
-Database scripts:
+### Database
 
 - `npm run db:up` / `db:down` - start/stop Postgres + pgAdmin containers
 - `npm run db:migrate` - apply pending migrations and regenerate Prisma Client (prompts for a name if schema changed)
@@ -79,6 +79,19 @@ Database scripts:
 - `npm run db:reset` - drop DB, reapply all migrations, re-run seed (destructive)
 - `npm run db:seed` - run `prisma/seed.ts`
 - `npm run db:studio` - open Prisma Studio on http://localhost:51212
+
+### Tests
+
+Integration tests hit a running server via curl. Start the server in another terminal first (`npm run dev`), then:
+
+- `npm run test:auth` - login and role-based auth
+
+### Quality checks
+
+- `npm run check` - runs typecheck + lint + format check; use before committing
+- `npm run typecheck` - TypeScript compile without emitting
+- `npm run lint` / `lint:fix` - ESLint check / auto-fix
+- `npm run format` / `format:check` - Prettier write / check-only
 
 ## Project Structure
 
@@ -88,12 +101,19 @@ prisma/
 ├── migrations/           # Ordered SQL migrations generated from schema changes
 └── seed.ts               # Populates test data (users, availability, schedule)
 
+scripts/
+└── api/                  # Integration test scripts (bash + curl) per endpoint group
+    ├── _common.sh        # Shared helpers (sourced, not run directly)
+    └── test-auth.sh
+
 src/
-├── index.ts              # Entry point - Express app, mounts routes
+├── index.ts              # Entry point - Express app, boot-time config check, mounts routes
 ├── schema.ts             # Zod schemas - single source of truth for input validation
 ├── lib/
 │   ├── prisma.ts         # Prisma Client singleton (shared across services)
 │   └── logger.ts         # Winston logger
+├── types/
+│   └── express.d.ts      # Augments Express Request with req.user
 ├── routes/               # Route definitions - HTTP method + path + middleware chain
 │   ├── auth.ts
 │   ├── employees.ts
