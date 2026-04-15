@@ -13,6 +13,7 @@
     "db:reset": "prisma migrate reset",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
+    "test:auth": "./scripts/api/test-auth.sh",
     "lint:fix": "eslint . --fix",
     "lint": "eslint . --fix",
     "format": "prettier --write ."
