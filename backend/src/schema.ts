@@ -8,3 +8,111 @@
 // updateAvailabilitySchema — PUT /availability/:employeeId (entries: { date, shiftType, isAvailable }[])
 
 // updateScheduleSchema    — PUT /schedule (entries: { date, shiftType, employeeId }[])
+
+import { z } from 'zod';
+
+export const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;
+
+const shiftTypeSchema = z.enum(['MORNING', 'AFTERNOON', 'NIGHT']);
+
+export const createEmployeeSchema = z.object({
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  email: z.string().email(),
+  password: z.string().min(1),
+  phone: z.string().min(1).optional(),
+  position: z.string().min(1).optional(),
+  avatar: z.string().url().optional(),
+});
+
+export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>;
+
+export const updateAvailabilitySchema = z.object({
+  entries: z
+    .array(
+      z.object({
+        date: z.string().date(),
+        shiftType: shiftTypeSchema,
+        isAvailable: z.boolean(),
+      }),
+    )
+    .min(1),
+});
+
+export type UpdateAvailabilityInput = z.infer<typeof updateAvailabilitySchema>;
+
+export const availabilityQuerySchema = z
+  .object({
+    weekOf: z.string().date().optional(),
+    startDate: z.string().date().optional(),
+    endDate: z.string().date().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.weekOf && (value.startDate || value.endDate)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Use either weekOf or startDate/endDate, not both',
+      });
+    }
+
+    if (value.startDate && value.endDate) {
+      const start = new Date(value.startDate);
+      const end = new Date(value.endDate);
+      if (start > end) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'startDate must be before or equal to endDate',
+        });
+      }
+    }
+  });
+
+export type AvailabilityQueryInput = z.infer<typeof availabilityQuerySchema>;
+
+export const updateScheduleSchema = z.object({
+  entries: z
+    .array(
+      z.object({
+        date: z.string().date(),
+        shiftType: shiftTypeSchema,
+        employeeId: z.string().uuid(),
+      }),
+    )
+    .min(1),
+});
+
+export type UpdateScheduleInput = z.infer<typeof updateScheduleSchema>;
+
+export const scheduleQuerySchema = z
+  .object({
+    weekOf: z.string().date().optional(),
+    startDate: z.string().date().optional(),
+    endDate: z.string().date().optional(),
+    employeeId: z.string().uuid().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.weekOf && (value.startDate || value.endDate)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Use either weekOf or startDate/endDate, not both',
+      });
+    }
+
+    if (value.startDate && value.endDate) {
+      const start = new Date(value.startDate);
+      const end = new Date(value.endDate);
+      if (start > end) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'startDate must be before or equal to endDate',
+        });
+      }
+    }
+  });
+
+export type ScheduleQueryInput = z.infer<typeof scheduleQuerySchema>;

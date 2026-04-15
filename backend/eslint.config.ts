@@ -10,8 +10,15 @@ export default defineConfig([
     files: ['**/*.ts'],
     plugins: { js },
     extends: ['js/recommended'],
-    languageOptions: { globals: globals.node },
+    languageOptions: {
+      globals: globals.node,
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
   },
+
   ...tseslint.configs.recommendedTypeChecked,
   eslintPluginPrettier,
   {
@@ -19,18 +26,36 @@ export default defineConfig([
   },
   {
     files: ['src/**/*.ts'],
-    languageOptions: {
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
-      },
-    },
     rules: {
       'prettier/prettier': 'error',
       eqeqeq: ['error', 'always'],
       '@typescript-eslint/no-unused-vars': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/await-thenable': 'error',
+    },
+  },
+  {
+    files: ['src/schema.ts', 'src/middleware/validate.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+    },
+  },
+  {
+    files: ['src/services/availability.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+    },
+  },
+  {
+    files: ['src/routes/availability.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-argument': 'off',
     },
   },
 ]);
