@@ -10,26 +10,20 @@ type EmployeeView = {
   email: string;
   phone: string | null;
   position: string | null;
-  avatar: string;
+  avatar: string | null;
 };
 
 export const getAllEmployees = async (): Promise<EmployeeView[]> => {
   const rows = await prisma.employee.findMany({
     orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+    include: { user: { select: { email: true } } },
   });
-
-  const userIds = rows.map((row) => row.userId);
-  const users = await prisma.user.findMany({
-    where: { id: { in: userIds } },
-    select: { id: true, email: true },
-  });
-  const userEmailById = new Map(users.map((user) => [user.id, user.email]));
 
   return rows.map((row) => ({
     id: row.id,
     firstName: row.firstName,
     lastName: row.lastName,
-    email: userEmailById.get(row.userId) ?? '',
+    email: row.user.email,
     phone: row.phone,
     position: row.position,
     avatar: row.avatar,
@@ -48,7 +42,6 @@ export const createEmployeeRecord = async (
     const created = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
-          name: `${firstName} ${lastName}`,
           email,
           passwordHash,
           role: 'EMPLOYEE',
@@ -62,7 +55,7 @@ export const createEmployeeRecord = async (
           lastName,
           phone,
           position,
-          avatar: avatar ?? '',
+          avatar: avatar ?? null,
         },
       });
     });
@@ -93,20 +86,16 @@ export const getEmployeeById = async (
 ): Promise<EmployeeView | null> => {
   const employee = await prisma.employee.findUnique({
     where: { id },
+    include: { user: { select: { email: true } } },
   });
 
   if (!employee) return null;
-
-  const user = await prisma.user.findUnique({
-    where: { id: employee.userId },
-    select: { email: true },
-  });
 
   return {
     id: employee.id,
     firstName: employee.firstName,
     lastName: employee.lastName,
-    email: user?.email ?? '',
+    email: employee.user.email,
     phone: employee.phone,
     position: employee.position,
     avatar: employee.avatar,

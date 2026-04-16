@@ -7,7 +7,7 @@ export const login: RequestHandler<
   Record<string, string>,
   unknown,
   LoginInput
-> = async (req, res) => {
+> = async (req, res, next) => {
   try {
     const result = await loginService(req.body);
     res.status(200).json(result);
@@ -17,6 +17,6 @@ export const login: RequestHandler<
       return;
     }
 
-    res.status(500).json({ error: 'Internal server error' });
+    next(error);
   }
 };

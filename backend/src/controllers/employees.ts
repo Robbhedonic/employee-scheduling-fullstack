@@ -6,12 +6,12 @@ import {
 } from '../services/employees.js';
 import type { CreateEmployeeInput } from '../schema.js';
 
-export const getAll: RequestHandler = async (_req, res) => {
+export const getAll: RequestHandler = async (_req, res, next) => {
   try {
     const employees = await getAllEmployees();
     res.status(200).json({ employees });
-  } catch {
-    res.status(500).json({ error: 'Internal server error' });
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -19,7 +19,7 @@ export const create: RequestHandler<
   Record<string, never>,
   unknown,
   CreateEmployeeInput
-> = async (req, res) => {
+> = async (req, res, next) => {
   try {
     const employee = await createEmployeeRecord(req.body);
     res.status(201).json({ employee });
@@ -29,11 +29,15 @@ export const create: RequestHandler<
       return;
     }
 
-    res.status(500).json({ error: 'Internal server error' });
+    next(error);
   }
 };
 
-export const getById: RequestHandler<{ id: string }> = async (req, res) => {
+export const getById: RequestHandler<{ id: string }> = async (
+  req,
+  res,
+  next,
+) => {
   try {
     const employee = await getEmployeeById(req.params.id);
     if (!employee) {
@@ -42,7 +46,7 @@ export const getById: RequestHandler<{ id: string }> = async (req, res) => {
     }
 
     res.status(200).json({ employee });
-  } catch {
-    res.status(500).json({ error: 'Internal server error' });
+  } catch (error) {
+    next(error);
   }
 };

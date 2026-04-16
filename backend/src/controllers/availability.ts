@@ -1,8 +1,8 @@
 import type { RequestHandler } from 'express';
 import prisma from '../lib/prisma.js';
-import {
-  availabilityQuerySchema,
-  type UpdateAvailabilityInput,
+import type {
+  AvailabilityQueryInput,
+  UpdateAvailabilityInput,
 } from '../schema.js';
 import * as availabilityService from '../services/availability.js';
 
@@ -18,7 +18,12 @@ async function employeeOwnsAvailability(
   return employee?.id === targetEmployeeId;
 }
 
-export const get: RequestHandler<{ employeeId: string }> = async (req, res) => {
+export const get: RequestHandler<
+  { employeeId: string },
+  unknown,
+  never,
+  AvailabilityQueryInput
+> = async (req, res, next) => {
   try {
     if (!req.user) {
       res.status(401).json({ error: 'Not authenticated' });
@@ -26,16 +31,7 @@ export const get: RequestHandler<{ employeeId: string }> = async (req, res) => {
     }
 
     const { employeeId } = req.params;
-    const parsedQuery = availabilityQuerySchema.safeParse(req.query);
-    if (!parsedQuery.success) {
-      res.status(400).json({
-        error: 'Validation error',
-        details: parsedQuery.error.flatten(),
-      });
-      return;
-    }
-
-    const { weekOf, startDate, endDate } = parsedQuery.data;
+    const { weekOf, startDate, endDate } = req.query;
 
     if (req.user.role === 'EMPLOYEE') {
       const canAccess = await employeeOwnsAvailability(
@@ -61,7 +57,7 @@ export const get: RequestHandler<{ employeeId: string }> = async (req, res) => {
       return;
     }
 
-    res.status(500).json({ error: 'Internal server error' });
+    next(error);
   }
 };
 
@@ -69,7 +65,7 @@ export const update: RequestHandler<
   { employeeId: string },
   unknown,
   UpdateAvailabilityInput
-> = async (req, res) => {
+> = async (req, res, next) => {
   try {
     if (!req.user) {
       res.status(401).json({ error: 'Not authenticated' });
@@ -97,6 +93,6 @@ export const update: RequestHandler<
       return;
     }
 
-    res.status(500).json({ error: 'Internal server error' });
+    next(error);
   }
 };

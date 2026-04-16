@@ -25,10 +25,16 @@ See each project's README for details:
 ```bash
 cd backend
 npm install
-cp .env-example .env     # fill in your values
-docker compose up -d     # PostgreSQL on :5433, pgAdmin on :8080
+cp .env-example .env     # defaults work; edit if needed
+npm run db:up            # PostgreSQL on :5433, pgAdmin on :8080
+npm run db:migrate       # apply schema
+npm run db:seed          # load test users and schedule
 npm run dev              # http://localhost:3000
 ```
+
+With the server running, `npm test` (in another terminal) runs the full integration suite against it.
+
+See the [backend README](backend/README.md) for the full script reference and seeded credentials.
 
 ### Frontend
 
@@ -65,12 +71,23 @@ Use conventional commit types: `feat`, `fix`, `refactor`, `chore`, `docs`, `styl
 - Another team member reviews before merging
 - Reference the issue in the PR description
 
-### Linting
+### Checks
 
-Both projects use ESLint + Prettier. Run before committing:
+Both projects use TypeScript + ESLint + Prettier.
+
+**Backend** (from `backend/`):
 
 ```bash
-cd backend   # or cd frontend
-npm run lint        # check for issues
+npm run check       # typecheck + lint + format, all read-only
+npm run lint:fix    # auto-fix ESLint issues
+npm run format      # auto-fix Prettier issues
+```
+
+**Frontend** (from `frontend/`):
+
+```bash
+npm run lint        # ESLint check
 npm run lint:fix    # auto-fix
 ```
+
+(Frontend doesn't yet have the combined `check` / `typecheck` / `format` scripts. Align with backend when convenient.)
