@@ -4,6 +4,7 @@ import { Login } from '@/pages/Login';
 import { RequireAuth } from '@/pages/RequireAuth';
 import { EmployeeFormPage } from '@/pages/manager/EmployeeFormPage';
 import { EmployeesPage } from '@/pages/manager/EmployeesPage';
+import { JobSchedulePage } from '@/pages/manager/JobSchedulePage';
 import { ManagerLayout } from '@/pages/manager/ManagerLayout';
 import { StaffLayout } from '@/pages/staff/StaffLayout';
 import { PlaceholderPage } from '@/pages/PlaceholderPage';
@@ -33,10 +34,7 @@ function App() {
             <Route path="employees" element={<EmployeesPage />} />
             <Route path="employees/new" element={<EmployeeFormPage />} />
             <Route path="employees/:id" element={<EmployeeFormPage />} />
-            <Route
-              path="job-schedule"
-              element={<PlaceholderPage title="Job schedule" issue="#16" />}
-            />
+            <Route path="job-schedule" element={<JobSchedulePage />} />
             <Route
               path="work-schedule"
               element={<PlaceholderPage title="Work schedule" issue="#30" />}
