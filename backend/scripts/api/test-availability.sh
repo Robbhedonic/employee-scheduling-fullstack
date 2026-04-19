@@ -33,6 +33,51 @@ fi
 
 info "Monday=$monday  Sunday=$sunday  juan=$juan_id  maria=$maria_id"
 
+section "GET /availability — bulk (employer)"
+
+request GET /availability --auth "$employer_token"
+assert_status 200 "employer can list all availability"
+total=$(printf '%s' "$RESPONSE_BODY" | jq '.availability | length')
+if [ "$total" -ge 21 ]; then
+  pass "response contains many entries (got $total)"
+else
+  fail "expected >= 21 bulk entries, got $total"
+fi
+distinct_employees=$(printf '%s' "$RESPONSE_BODY" | jq '[.availability[].employee.id] | unique | length')
+if [ "$distinct_employees" -ge 2 ]; then
+  pass "spans multiple employees ($distinct_employees distinct)"
+else
+  fail "expected >= 2 distinct employees, got $distinct_employees"
+fi
+first_name=$(printf '%s' "$RESPONSE_BODY" | jq -r '.availability[0].employee.firstName')
+if [ -n "$first_name" ] && [ "$first_name" != "null" ]; then
+  pass "first row carries nested employee (firstName=$first_name)"
+else
+  fail "first row lacks nested employee firstName"
+fi
+
+request GET "/availability?weekOf=$monday" --auth "$employer_token"
+assert_status 200 "weekOf filter returns 200"
+week_count=$(printf '%s' "$RESPONSE_BODY" | jq '.availability | length')
+if [ "$week_count" -le "$total" ] && [ "$week_count" -ge 21 ]; then
+  pass "weekOf bounds the result (got $week_count)"
+else
+  fail "weekOf produced unexpected count: $week_count (total was $total)"
+fi
+
+section "GET /availability — bulk authorization"
+
+request GET /availability --auth "$juan_token"
+assert_status 403 "employee cannot list all availability"
+
+section "GET /availability — bulk validation"
+
+request GET "/availability?weekOf=not-a-date" --auth "$employer_token"
+assert_status 400 "invalid date format is rejected"
+
+request GET "/availability?weekOf=$monday&startDate=$monday" --auth "$employer_token"
+assert_status 400 "weekOf + startDate together is rejected"
+
 section "GET /availability/:employeeId — happy path"
 
 request GET "/availability/$juan_id" --auth "$juan_token"

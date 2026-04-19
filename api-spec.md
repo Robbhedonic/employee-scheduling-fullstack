@@ -200,6 +200,48 @@ Get a single employee's profile. Employer only.
 
 ## Availability
 
+### GET /availability
+
+List availability entries for **all employees** in a date range. Employer only.
+Used to render the per-employee availability overview without N+1 requests.
+
+**Query params:**
+
+- `weekOf` — ISO date for the Monday of a week (returns 7 days)
+- `startDate` / `endDate` — alternative explicit range
+- All filters are optional; omit them to fetch every entry (use sparingly)
+
+**Response 200:**
+
+```json
+{
+  "availability": [
+    {
+      "id": "uuid",
+      "employeeId": "uuid",
+      "date": "2026-04-06",
+      "shiftType": "MORNING",
+      "isAvailable": true,
+      "createdAt": "...",
+      "updatedAt": "...",
+      "employee": {
+        "id": "uuid",
+        "firstName": "Erik",
+        "lastName": "Svensson"
+      }
+    }
+  ]
+}
+```
+
+**Errors:**
+
+- `400` — Validation error (invalid date, conflicting filters)
+- `401` — Not authenticated
+- `403` — Not an employer
+
+---
+
 ### GET /availability/:employeeId
 
 Get an employee's availability. Both roles.
