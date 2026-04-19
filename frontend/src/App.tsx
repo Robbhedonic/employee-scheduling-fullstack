@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Login } from '@/pages/Login';
 import { RequireAuth } from '@/pages/RequireAuth';
+import { EmployeesPage } from '@/pages/manager/EmployeesPage';
 import { ManagerLayout } from '@/pages/manager/ManagerLayout';
 import { StaffLayout } from '@/pages/staff/StaffLayout';
 import { PlaceholderPage } from '@/pages/PlaceholderPage';
@@ -28,10 +29,7 @@ function App() {
         <Route element={<RequireAuth role="EMPLOYER" />}>
           <Route path="/manager" element={<ManagerLayout />}>
             <Route index element={<Navigate to="employees" replace />} />
-            <Route
-              path="employees"
-              element={<PlaceholderPage title="Employees" issue="#14" />}
-            />
+            <Route path="employees" element={<EmployeesPage />} />
             <Route
               path="employees/new"
               element={
