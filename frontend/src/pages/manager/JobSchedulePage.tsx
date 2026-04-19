@@ -12,7 +12,7 @@ import {
   SHIFT_TIME,
   type ShiftType,
 } from '@/lib/colors';
-import { thisMonday, toISODate, weekDates } from '@/lib/dates';
+import { parseISODate, thisMonday, toISODate, weekDates } from '@/lib/dates';
 
 const SHIFTS: ShiftType[] = ['MORNING', 'AFTERNOON', 'NIGHT'];
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -48,6 +48,14 @@ type ScheduleEntry = {
   employee: { id: string; firstName: string; lastName: string };
 };
 
+type AvailabilityEntry = {
+  id: string;
+  employeeId: string;
+  date: string;
+  shiftType: ShiftType;
+  isAvailable: boolean;
+};
+
 export function JobSchedulePage() {
   const { token } = useAuth();
   const queryClient = useQueryClient();
@@ -70,6 +78,15 @@ export function JobSchedulePage() {
       }),
   });
 
+  const availabilityQuery = useQuery({
+    queryKey: ['availability', weekOf],
+    queryFn: () =>
+      apiFetch<{ availability: AvailabilityEntry[] }>(
+        `/availability?weekOf=${weekOf}`,
+        { token },
+      ),
+  });
+
   const employeeMap = useMemo(() => {
     const map = new Map<string, Employee>();
     for (const e of employeesQuery.data?.employees ?? []) {
@@ -89,6 +106,18 @@ export function JobSchedulePage() {
     }
     return map;
   }, [scheduleQuery.data]);
+
+  // For each cell, map of employeeId -> isAvailable. Missing key = "not set".
+  const availabilityByCell = useMemo(() => {
+    const map = new Map<string, Map<string, boolean>>();
+    for (const a of availabilityQuery.data?.availability ?? []) {
+      const key = `${a.date.slice(0, 10)}|${a.shiftType}`;
+      const inner = map.get(key) ?? new Map<string, boolean>();
+      inner.set(a.employeeId, a.isAvailable);
+      map.set(key, inner);
+    }
+    return map;
+  }, [availabilityQuery.data]);
 
   const days = useMemo(() => weekDates(weekOf), [weekOf]);
 
@@ -114,6 +143,14 @@ export function JobSchedulePage() {
       queryClient.invalidateQueries({ queryKey: ['schedule', weekOf] }),
   });
 
+  const pickerCellKey = picker ? `${picker.date}|${picker.shiftType}` : null;
+  const pickerAssignedIds = pickerCellKey
+    ? (entriesByCell.get(pickerCellKey)?.map((e) => e.employee.id) ?? [])
+    : [];
+  const pickerAvailability = pickerCellKey
+    ? (availabilityByCell.get(pickerCellKey) ?? new Map<string, boolean>())
+    : new Map<string, boolean>();
+
   return (
     <div className="space-y-7">
       <Hero weekOf={weekOf} onWeekChange={setWeekOf} />
@@ -136,11 +173,8 @@ export function JobSchedulePage() {
           date={picker.date}
           shiftType={picker.shiftType}
           allEmployees={employeesQuery.data?.employees ?? []}
-          alreadyAssigned={
-            entriesByCell
-              .get(`${picker.date}|${picker.shiftType}`)
-              ?.map((e) => e.employee.id) ?? []
-          }
+          alreadyAssigned={pickerAssignedIds}
+          availability={pickerAvailability}
           onClose={() => setPicker(null)}
           onPick={(employeeId) => {
             assign.mutate(
@@ -192,7 +226,7 @@ function Grid({
   onAdd: (date: string, shiftType: ShiftType) => void;
   onRemove: (entryId: string) => void;
 }) {
-  const cols = '180px repeat(7, 1fr)';
+  const cols = '180px repeat(7, minmax(0, 1fr))';
 
   return (
     <div className="overflow-hidden rounded-2xl border-[1.5px] border-line-soft bg-paper">
@@ -303,7 +337,7 @@ function EmployeeChip({
       </span>
       <button
         onClick={onRemove}
-        className="hidden h-4 w-4 shrink-0 items-center justify-center rounded-full bg-paper transition-colors group-hover:flex"
+        className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-paper opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 pointer-events-none"
         style={{ borderColor: c.border, color: c.fg, border: '1px solid' }}
         title={`Remove ${firstName}`}
         aria-label={`Remove ${firstName}`}
@@ -319,6 +353,7 @@ function PickerDialog({
   shiftType,
   allEmployees,
   alreadyAssigned,
+  availability,
   onClose,
   onPick,
   isAssigning,
@@ -327,20 +362,20 @@ function PickerDialog({
   shiftType: ShiftType;
   allEmployees: Employee[];
   alreadyAssigned: string[];
+  availability: Map<string, boolean>;
   onClose: () => void;
   onPick: (employeeId: string) => void;
   isAssigning: boolean;
 }) {
-  const [query, setQuery] = useState('');
-  const available = useMemo(() => {
-    const taken = new Set(alreadyAssigned);
-    const q = query.trim().toLowerCase();
-    return allEmployees
-      .filter((e) => !taken.has(e.id))
-      .filter(
-        (e) => !q || `${e.firstName} ${e.lastName}`.toLowerCase().includes(q),
-      );
-  }, [allEmployees, alreadyAssigned, query]);
+  const taken = useMemo(() => new Set(alreadyAssigned), [alreadyAssigned]);
+  const candidates = useMemo(
+    () => allEmployees.filter((e) => !taken.has(e.id)),
+    [allEmployees, taken],
+  );
+
+  const d = parseISODate(date);
+  const dayLabel = DAY_LABELS[(d.getDay() + 6) % 7]; // Monday-based index
+  const dayOfMonth = d.getDate();
 
   return (
     <div
@@ -348,68 +383,94 @@ function PickerDialog({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border-[1.5px] border-line bg-paper shadow-lg"
+        className="flex max-h-[80vh] w-[min(560px,calc(100vw-48px))] flex-col overflow-hidden rounded-2xl border-[1.5px] border-line-soft bg-paper shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="border-b border-line-soft p-5">
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-ink-3 uppercase">
-            Add to {SHIFT_LABEL[shiftType]} - {date}
-          </p>
-          <h2 className="mt-1 font-display text-2xl text-ink">Pick someone</h2>
+        <header className="flex items-start justify-between border-b-[1.5px] border-line-soft px-6 py-5">
+          <div>
+            <p className="mb-1 text-[11px] font-semibold tracking-[0.12em] text-ink-3 uppercase">
+              {SHIFT_LABEL[shiftType]} · {dayLabel} {dayOfMonth}
+            </p>
+            <h2 className="font-display text-[26px] leading-none text-ink">
+              Add <i className="text-terracotta">employee</i>
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="grid h-8 w-8 place-items-center rounded-full text-ink-3 transition-colors hover:bg-bg-2 hover:text-ink"
+          >
+            <X size={16} />
+          </button>
         </header>
 
-        <div className="border-b border-line-soft p-3">
-          <input
-            type="search"
-            autoFocus
-            placeholder="Search by name"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="block h-10 w-full rounded-md border border-line-soft bg-bg px-3 text-sm focus:border-ink focus:outline-none"
-          />
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {available.length === 0 ? (
-            <p className="p-6 text-center text-sm text-ink-3">
-              {alreadyAssigned.length === allEmployees.length
-                ? 'Everyone is already assigned to this shift.'
-                : 'No employees match.'}
+        <div className="flex-1 overflow-y-auto p-2.5">
+          {candidates.length === 0 ? (
+            <p className="px-6 py-10 text-center text-[13px] text-ink-3">
+              Everyone is already on this shift.
             </p>
           ) : (
-            <ul className="divide-y divide-line-soft">
-              {available.map((e) => (
-                <li key={e.id}>
-                  <button
-                    disabled={isAssigning}
-                    onClick={() => onPick(e.id)}
-                    className="flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-bg-2 disabled:opacity-50"
-                  >
-                    <Avatar
-                      firstName={e.firstName}
-                      lastName={e.lastName}
-                      position={e.position}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium text-ink">
-                        {e.firstName} {e.lastName}
-                      </div>
-                      {e.position && (
-                        <div className="truncate text-[11px] text-ink-3">
-                          {e.position}
-                        </div>
-                      )}
+            candidates.map((e) => {
+              const flag = availability.get(e.id);
+              const status: 'available' | 'unavailable' | 'unset' =
+                flag === true
+                  ? 'available'
+                  : flag === false
+                    ? 'unavailable'
+                    : 'unset';
+              const disabled = status !== 'available' || isAssigning;
+              const pillLabel =
+                status === 'available'
+                  ? 'Available'
+                  : status === 'unavailable'
+                    ? "Can't"
+                    : 'Not set';
+              const pillColor =
+                status === 'available' ? 'var(--forest)' : 'var(--ink-4)';
+              return (
+                <button
+                  key={e.id}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onPick(e.id)}
+                  className="grid w-full grid-cols-[40px_1fr_auto] items-center gap-3 rounded-lg border-[1.5px] border-transparent p-3 text-left transition-colors enabled:cursor-pointer enabled:hover:bg-bg-2 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Avatar
+                    firstName={e.firstName}
+                    lastName={e.lastName}
+                    position={e.position}
+                    size={36}
+                  />
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium text-ink">
+                      {e.firstName} {e.lastName}
                     </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    {e.position && (
+                      <div className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-ink-3">
+                        <span
+                          className="inline-block h-1.5 w-1.5 rounded-full"
+                          style={{ background: positionColors(e.position).dot }}
+                        />
+                        {e.position}
+                      </div>
+                    )}
+                  </div>
+                  <span
+                    className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10.5px] font-semibold tracking-[0.06em] uppercase"
+                    style={{ borderColor: pillColor, color: pillColor }}
+                  >
+                    {pillLabel}
+                  </span>
+                </button>
+              );
+            })
           )}
         </div>
 
-        <footer className="flex justify-end border-t border-line-soft p-3">
+        <footer className="flex justify-end border-t-[1.5px] border-line-soft px-6 py-3.5">
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            Close
           </Button>
         </footer>
       </div>
