@@ -124,18 +124,22 @@ The employer sets an initial password and shares it with the employee.
 
 ### PUT /employees/:id
 
-Update an existing employee's profile. Employer only.
-Send any subset of the updatable fields. Send `null` to clear an optional field.
+Update an existing employee. Employer only.
+Send any subset of the updatable fields (must include at least one).
+Send `null` on `phone`, `position`, or `avatar` to clear them.
 
-**Updatable fields:** `firstName`, `lastName`, `phone`, `position`, `avatar`.
-Email and password are not updatable here.
+**Updatable fields:** `firstName`, `lastName`, `email`, `password`, `phone`, `position`, `avatar`.
+
+`email` updates the underlying User and must remain unique.
+`password` is hashed and replaces the current credential (employer-driven reset, no current-password challenge).
 
 **Request body (partial):**
 
 ```json
 {
   "firstName": "Erik",
-  "position": "Head Chef",
+  "email": "erik.new@example.com",
+  "password": "new-secret",
   "phone": null
 }
 ```
@@ -148,9 +152,9 @@ Email and password are not updatable here.
     "id": "uuid",
     "firstName": "Erik",
     "lastName": "Svensson",
-    "email": "erik@example.com",
+    "email": "erik.new@example.com",
     "phone": null,
-    "position": "Head Chef",
+    "position": "Chef",
     "avatar": "https://..."
   }
 }
@@ -162,6 +166,7 @@ Email and password are not updatable here.
 - `401` — Not authenticated
 - `403` — Not an employer
 - `404` — Employee not found
+- `409` — Email already exists
 
 ---
 

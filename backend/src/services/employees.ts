@@ -85,12 +85,43 @@ export const updateEmployee = async (
   id: string,
   input: UpdateEmployeeInput,
 ): Promise<EmployeeView | null> => {
+  const { email, password, ...employeeFields } = input;
+  const passwordHash = password ? await hash(password, 10) : undefined;
+  const hasUserUpdate = email !== undefined || passwordHash !== undefined;
+  const hasEmployeeUpdate = Object.keys(employeeFields).length > 0;
+
   try {
-    const updated = await prisma.employee.update({
-      where: { id },
-      data: input,
-      include: { user: { select: { email: true } } },
+    const updated = await prisma.$transaction(async (tx) => {
+      const existing = await tx.employee.findUnique({
+        where: { id },
+        select: { userId: true },
+      });
+      if (!existing) return null;
+
+      if (hasUserUpdate) {
+        await tx.user.update({
+          where: { id: existing.userId },
+          data: {
+            ...(email !== undefined && { email }),
+            ...(passwordHash !== undefined && { passwordHash }),
+          },
+        });
+      }
+
+      if (hasEmployeeUpdate) {
+        await tx.employee.update({
+          where: { id },
+          data: employeeFields,
+        });
+      }
+
+      return tx.employee.findUniqueOrThrow({
+        where: { id },
+        include: { user: { select: { email: true } } },
+      });
     });
+
+    if (!updated) return null;
 
     return {
       id: updated.id,
@@ -104,9 +135,9 @@ export const updateEmployee = async (
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2025'
+      error.code === 'P2002'
     ) {
-      return null;
+      throw new Error('Email already exists', { cause: error });
     }
 
     throw error;

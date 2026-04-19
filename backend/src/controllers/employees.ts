@@ -66,6 +66,11 @@ export const update: RequestHandler<
 
     res.status(200).json({ employee });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Email already exists') {
+      res.status(409).json({ error: 'Email already exists' });
+      return;
+    }
+
     next(error);
   }
 };

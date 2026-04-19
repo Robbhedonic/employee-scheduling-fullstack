@@ -5,7 +5,7 @@
 
 // createEmployeeSchema    — POST /employees (firstName, lastName, email, password, phone?, position?, avatar?)
 
-// updateEmployeeSchema    — PUT /employees/:id (any subset of firstName, lastName, phone, position, avatar)
+// updateEmployeeSchema    — PUT /employees/:id (any subset of firstName, lastName, email, password, phone, position, avatar)
 
 // updateAvailabilitySchema — PUT /availability/:employeeId (entries: { date, shiftType, isAvailable }[])
 
@@ -38,6 +38,8 @@ export const updateEmployeeSchema = z
   .object({
     firstName: z.string().min(1).optional(),
     lastName: z.string().min(1).optional(),
+    email: z.email().optional(),
+    password: z.string().min(1).optional(),
     phone: z.string().min(1).nullable().optional(),
     position: z.string().min(1).nullable().optional(),
     avatar: z.url().nullable().optional(),
