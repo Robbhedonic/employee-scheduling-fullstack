@@ -90,3 +90,22 @@ npm run lint        # ESLint check (Prettier runs as an ESLint rule)
 npm run lint:fix    # auto-fix lint + formatting
 npm run build       # tsc -b + vite build (typecheck happens here)
 ```
+
+## Publish To GitHub
+
+Use this if you want to publish this project to a fresh GitHub repository:
+
+```bash
+git init
+git checkout -b main
+git add .
+git commit -m "chore: initial project publish"
+git remote add origin <your-repo-url>
+git push -u origin main
+```
+
+This repository also includes CI in `.github/workflows/ci.yml`.
+On every push and pull request to `main`, GitHub Actions runs:
+
+- Backend: install, typecheck, lint, build
+- Frontend: install, lint, build
