@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, X } from 'lucide-react';
 import { Avatar } from '@/components/Avatar';
 import { WeekNavigator } from '@/components/WeekNavigator';
+import { WeekStrip } from '@/components/WeekStrip';
 import { Button } from '@/components/ui/button';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -12,7 +13,13 @@ import {
   SHIFT_TIME,
   type ShiftType,
 } from '@/lib/colors';
-import { parseISODate, thisMonday, toISODate, weekDates } from '@/lib/dates';
+import {
+  defaultSelectedDay,
+  parseISODate,
+  thisMonday,
+  toISODate,
+  weekDates,
+} from '@/lib/dates';
 
 const SHIFTS: ShiftType[] = ['MORNING', 'AFTERNOON', 'NIGHT'];
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -59,11 +66,19 @@ type AvailabilityEntry = {
 export function JobSchedulePage() {
   const { token } = useAuth();
   const queryClient = useQueryClient();
-  const [weekOf, setWeekOf] = useState(thisMonday());
+  const [weekOf, setWeekOfRaw] = useState(thisMonday());
+  const [selectedDate, setSelectedDate] = useState(() =>
+    defaultSelectedDay(thisMonday()),
+  );
   const [picker, setPicker] = useState<{
     date: string;
     shiftType: ShiftType;
   } | null>(null);
+
+  const setWeekOf = (next: string) => {
+    setWeekOfRaw(next);
+    setSelectedDate(defaultSelectedDay(next));
+  };
 
   const employeesQuery = useQuery({
     queryKey: ['employees'],
@@ -158,14 +173,33 @@ export function JobSchedulePage() {
       {scheduleQuery.isError ? (
         <ErrorBanner error={scheduleQuery.error} />
       ) : (
-        <Grid
-          days={days}
-          entriesByCell={entriesByCell}
-          employeeMap={employeeMap}
-          loading={scheduleQuery.isLoading}
-          onAdd={(date, shiftType) => setPicker({ date, shiftType })}
-          onRemove={(entryId) => unassign.mutate(entryId)}
-        />
+        <>
+          <div className="md:hidden">
+            <WeekStrip
+              weekOf={weekOf}
+              selectedDate={selectedDate}
+              onSelect={setSelectedDate}
+            />
+            <MobileDay
+              date={selectedDate}
+              entriesByCell={entriesByCell}
+              employeeMap={employeeMap}
+              loading={scheduleQuery.isLoading}
+              onAdd={(date, shiftType) => setPicker({ date, shiftType })}
+              onRemove={(entryId) => unassign.mutate(entryId)}
+            />
+          </div>
+          <div className="hidden md:block">
+            <Grid
+              days={days}
+              entriesByCell={entriesByCell}
+              employeeMap={employeeMap}
+              loading={scheduleQuery.isLoading}
+              onAdd={(date, shiftType) => setPicker({ date, shiftType })}
+              onRemove={(entryId) => unassign.mutate(entryId)}
+            />
+          </div>
+        </>
       )}
 
       {picker && (
@@ -197,16 +231,90 @@ function Hero({
   onWeekChange: (next: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-6">
-      <div className="min-w-0 flex-[1_1_420px]">
-        <p className="mb-2 text-[12px] font-semibold tracking-[0.12em] text-ink-3 uppercase">
+    <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-6">
+      <div className="min-w-0 md:flex-[1_1_420px]">
+        <p className="mb-2 text-[11.5px] font-semibold tracking-[0.12em] text-ink-3 uppercase sm:text-[12px]">
           Week of {weekOf}
         </p>
-        <h1 className="font-display text-[48px] leading-[1.08] text-ink">
+        <h1 className="font-display text-[34px] leading-[1.08] text-ink sm:text-[40px] md:text-[48px]">
           Weekly shift <i className="text-terracotta">schedule</i>
         </h1>
       </div>
       <WeekNavigator weekOf={weekOf} onChange={onWeekChange} />
+    </div>
+  );
+}
+
+function MobileDay({
+  date,
+  entriesByCell,
+  employeeMap,
+  loading,
+  onAdd,
+  onRemove,
+}: {
+  date: string;
+  entriesByCell: Map<string, ScheduleEntry[]>;
+  employeeMap: Map<string, Employee>;
+  loading: boolean;
+  onAdd: (date: string, shiftType: ShiftType) => void;
+  onRemove: (entryId: string) => void;
+}) {
+  const d = parseISODate(date);
+  const dayLabel = DAY_LABELS[(d.getDay() + 6) % 7];
+  return (
+    <div className="mt-4 overflow-hidden rounded-2xl border-[1.5px] border-line-soft bg-paper">
+      <div className="flex items-baseline justify-between border-b-[1.5px] border-line-soft bg-bg-2 px-4 py-3">
+        <span className="text-[11px] font-semibold tracking-[0.1em] text-ink-3 uppercase">
+          {dayLabel}
+        </span>
+        <span className="font-display text-[18px] leading-none">
+          {MONTHS[d.getMonth()]} {d.getDate()}
+        </span>
+      </div>
+      <div className="divide-y divide-line-soft">
+        {SHIFTS.map((shift) => {
+          const entries = entriesByCell.get(`${date}|${shift}`) ?? [];
+          return (
+            <div key={shift} className="px-4 py-3.5">
+              <div className="mb-2 flex items-baseline justify-between">
+                <span className="font-display text-[18px] leading-none">
+                  {SHIFT_LABEL[shift]}
+                </span>
+                <span className="font-mono text-[11px] text-ink-3">
+                  {SHIFT_TIME[shift]}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {loading && entries.length === 0 ? (
+                  <div className="h-7 w-full animate-pulse rounded-md bg-bg-2" />
+                ) : (
+                  entries.map((entry) => {
+                    const emp = employeeMap.get(entry.employee.id);
+                    return (
+                      <EmployeeChip
+                        key={entry.id}
+                        firstName={entry.employee.firstName}
+                        lastName={entry.employee.lastName}
+                        position={emp?.position}
+                        onRemove={() => onRemove(entry.id)}
+                      />
+                    );
+                  })
+                )}
+                <button
+                  type="button"
+                  onClick={() => onAdd(date, shift)}
+                  className="inline-flex h-7 items-center gap-1 rounded-md border border-dashed border-line-soft px-2 text-[11px] text-ink-3 transition-colors hover:border-ink hover:text-ink"
+                >
+                  <Plus size={12} />
+                  Add
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

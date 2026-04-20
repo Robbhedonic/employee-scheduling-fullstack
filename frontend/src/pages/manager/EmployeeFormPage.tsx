@@ -144,7 +144,7 @@ function FormBody({ id, initial }: { id?: string; initial?: Employee }) {
         Back to employees
       </Link>
 
-      <div className="grid gap-12 lg:grid-cols-[1.2fr_1fr]">
+      <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr] lg:gap-12">
         {/* Left: heading + form */}
         <div>
           <p className="mb-2 text-[12px] font-semibold tracking-[0.12em] text-ink-3 uppercase">
@@ -152,7 +152,7 @@ function FormBody({ id, initial }: { id?: string; initial?: Employee }) {
               ? `Editing · ${form.firstName} ${form.lastName}`.trim()
               : 'New employee'}
           </p>
-          <h1 className="pb-3 font-display text-[48px] leading-[1.08] text-ink">
+          <h1 className="pb-3 font-display text-[34px] leading-[1.08] text-ink sm:text-[40px] md:text-[48px]">
             {isEdit ? (
               'Update details'
             ) : (

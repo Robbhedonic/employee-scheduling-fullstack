@@ -72,18 +72,22 @@ export function EmployeesPage() {
 function Hero({ count, loading }: { count: number; loading: boolean }) {
   const navigate = useNavigate();
   return (
-    <div className="flex flex-wrap items-end justify-between gap-6">
-      <div className="min-w-0 flex-[1_1_420px]">
-        <p className="mb-2 text-[12px] font-semibold tracking-[0.12em] text-ink-3 uppercase">
+    <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-6">
+      <div className="min-w-0 md:flex-[1_1_420px]">
+        <p className="mb-2 text-[11.5px] font-semibold tracking-[0.12em] text-ink-3 uppercase sm:text-[12px]">
           {loading
             ? 'Loading...'
             : `${count} ${count === 1 ? 'person' : 'people'}`}
         </p>
-        <h1 className="font-display text-[48px] leading-[1.08] text-ink">
+        <h1 className="font-display text-[34px] leading-[1.08] text-ink sm:text-[40px] md:text-[48px]">
           The dream <i className="text-terracotta">team</i>
         </h1>
       </div>
-      <Button onClick={() => navigate('/manager/employees/new')} size="lg">
+      <Button
+        onClick={() => navigate('/manager/employees/new')}
+        size="lg"
+        className="md:self-end"
+      >
         <Plus size={16} />
         Register employee
       </Button>

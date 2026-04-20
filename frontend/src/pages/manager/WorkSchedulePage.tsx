@@ -2,10 +2,17 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Avatar } from '@/components/Avatar';
 import { WeekNavigator } from '@/components/WeekNavigator';
+import { WeekStrip } from '@/components/WeekStrip';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { type ShiftType } from '@/lib/colors';
-import { thisMonday, toISODate, weekDates } from '@/lib/dates';
+import {
+  defaultSelectedDay,
+  parseISODate,
+  thisMonday,
+  toISODate,
+  weekDates,
+} from '@/lib/dates';
 
 const SHIFTS: ShiftType[] = ['MORNING', 'AFTERNOON', 'NIGHT'];
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -56,7 +63,15 @@ type CellStatus =
 
 export function WorkSchedulePage() {
   const { token } = useAuth();
-  const [weekOf, setWeekOf] = useState(thisMonday());
+  const [weekOf, setWeekOfRaw] = useState(thisMonday());
+  const [selectedDate, setSelectedDate] = useState(() =>
+    defaultSelectedDay(thisMonday()),
+  );
+
+  const setWeekOf = (next: string) => {
+    setWeekOfRaw(next);
+    setSelectedDate(defaultSelectedDay(next));
+  };
 
   const employeesQuery = useQuery({
     queryKey: ['employees'],
@@ -108,12 +123,29 @@ export function WorkSchedulePage() {
       {error ? (
         <ErrorBanner error={error} />
       ) : (
-        <Grid
-          days={days}
-          employees={employees}
-          statusByCell={statusByCell}
-          loading={isLoading}
-        />
+        <>
+          <div className="md:hidden">
+            <WeekStrip
+              weekOf={weekOf}
+              selectedDate={selectedDate}
+              onSelect={setSelectedDate}
+            />
+            <MobileDay
+              date={selectedDate}
+              employees={employees}
+              statusByCell={statusByCell}
+              loading={isLoading}
+            />
+          </div>
+          <div className="hidden md:block">
+            <Grid
+              days={days}
+              employees={employees}
+              statusByCell={statusByCell}
+              loading={isLoading}
+            />
+          </div>
+        </>
       )}
     </div>
   );
@@ -140,17 +172,134 @@ function Hero({
   onWeekChange: (next: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-6">
-      <div className="min-w-0 flex-[1_1_420px]">
-        <p className="mb-2 text-[12px] font-semibold tracking-[0.12em] text-ink-3 uppercase">
+    <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-6">
+      <div className="min-w-0 md:flex-[1_1_420px]">
+        <p className="mb-2 text-[11.5px] font-semibold tracking-[0.12em] text-ink-3 uppercase sm:text-[12px]">
           Week of {weekOf}
         </p>
-        <h1 className="font-display text-[48px] leading-[1.08] text-ink">
+        <h1 className="font-display text-[34px] leading-[1.08] text-ink sm:text-[40px] md:text-[48px]">
           Team availability <i className="text-terracotta">preferences</i>
         </h1>
       </div>
       <WeekNavigator weekOf={weekOf} onChange={onWeekChange} />
     </div>
+  );
+}
+
+function MobileDay({
+  date,
+  employees,
+  statusByCell,
+  loading,
+}: {
+  date: string;
+  employees: Employee[];
+  statusByCell: Map<string, CellStatus>;
+  loading: boolean;
+}) {
+  const d = parseISODate(date);
+  const dayLabel = DAY_LABELS[(d.getDay() + 6) % 7];
+  return (
+    <div className="mt-4 overflow-hidden rounded-2xl border-[1.5px] border-line-soft bg-paper">
+      <div className="flex items-baseline justify-between border-b-[1.5px] border-line-soft bg-bg-2 px-4 py-3">
+        <span className="text-[11px] font-semibold tracking-[0.1em] text-ink-3 uppercase">
+          {dayLabel}
+        </span>
+        <span className="font-display text-[18px] leading-none">
+          {MONTHS[d.getMonth()]} {d.getDate()}
+        </span>
+      </div>
+      {loading ? (
+        <div className="divide-y divide-line-soft">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-4 py-3.5">
+              <div className="h-9 w-9 animate-pulse rounded-full bg-bg-2" />
+              <div className="h-3 w-24 animate-pulse rounded bg-bg-2" />
+            </div>
+          ))}
+        </div>
+      ) : employees.length === 0 ? (
+        <p className="px-4 py-8 text-center text-sm text-ink-3">
+          No team members yet.
+        </p>
+      ) : (
+        <div className="divide-y divide-line-soft">
+          {employees.map((emp) => {
+            const status = statusByCell.get(`${emp.id}|${date}`) ?? {
+              kind: 'none' as const,
+            };
+            return (
+              <div key={emp.id} className="flex items-center gap-3 px-4 py-3.5">
+                <Avatar
+                  firstName={emp.firstName}
+                  lastName={emp.lastName}
+                  position={emp.position}
+                  size={36}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium text-ink">
+                    {emp.firstName} {emp.lastName}
+                  </div>
+                  {emp.position && (
+                    <div className="truncate text-[11px] text-ink-3">
+                      {emp.position}
+                    </div>
+                  )}
+                </div>
+                <MobileStatusPill status={status} />
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MobileStatusPill({ status }: { status: CellStatus }) {
+  if (status.kind === 'none') {
+    return <span className="text-[11.5px] text-ink-4">-</span>;
+  }
+  if (status.kind === 'available') {
+    return (
+      <span
+        className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+        style={{
+          background: 'oklch(0.92 0.09 145)',
+          border: '1.5px solid oklch(0.55 0.16 145)',
+          color: 'oklch(0.28 0.14 145)',
+        }}
+      >
+        Available
+      </span>
+    );
+  }
+  if (status.kind === 'unavailable') {
+    return (
+      <span
+        className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+        style={{
+          background: 'var(--bg-2)',
+          border: '1.5px dashed var(--line-soft)',
+          color: 'var(--ink-4)',
+        }}
+      >
+        Unavailable
+      </span>
+    );
+  }
+  const m = SHIFT_META[status.shift];
+  return (
+    <span
+      className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+      style={{
+        background: `oklch(0.93 0.06 ${m.hue})`,
+        border: `1.5px solid oklch(0.58 0.12 ${m.hue})`,
+        color: `oklch(0.32 0.11 ${m.hue})`,
+      }}
+    >
+      {m.label}
+    </span>
   );
 }
 

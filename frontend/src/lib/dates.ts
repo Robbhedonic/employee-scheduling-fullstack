@@ -80,3 +80,14 @@ export function parseISODate(s: string): Date {
   const [y, m, d] = s.split('-').map(Number);
   return new Date(y, m - 1, d);
 }
+
+/**
+ * Pick the natural "selected day" for a given week:
+ * today's date if today falls in the week, otherwise the Monday.
+ * Used by mobile day-stack layouts.
+ */
+export function defaultSelectedDay(weekOf: string): string {
+  const today = toISODate(new Date());
+  const dates = weekDates(weekOf).map(toISODate);
+  return dates.includes(today) ? today : dates[0];
+}

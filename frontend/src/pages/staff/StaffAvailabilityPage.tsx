@@ -2,11 +2,18 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Calendar, Check, X } from 'lucide-react';
 import { WeekNavigator } from '@/components/WeekNavigator';
+import { WeekStrip } from '@/components/WeekStrip';
 import { Button } from '@/components/ui/button';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { SHIFT_LABEL, SHIFT_TIME, type ShiftType } from '@/lib/colors';
-import { parseISODate, thisMonday, toISODate, weekDates } from '@/lib/dates';
+import {
+  defaultSelectedDay,
+  parseISODate,
+  thisMonday,
+  toISODate,
+  weekDates,
+} from '@/lib/dates';
 
 const SHIFTS: ShiftType[] = ['MORNING', 'AFTERNOON', 'NIGHT'];
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -50,8 +57,16 @@ export function StaffAvailabilityPage() {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
   const employeeId = user?.employeeId;
-  const [weekOf, setWeekOf] = useState(thisMonday());
+  const [weekOf, setWeekOfRaw] = useState(thisMonday());
+  const [selectedDate, setSelectedDate] = useState(() =>
+    defaultSelectedDay(thisMonday()),
+  );
   const [editingDate, setEditingDate] = useState<string | null>(null);
+
+  const setWeekOf = (next: string) => {
+    setWeekOfRaw(next);
+    setSelectedDate(defaultSelectedDay(next));
+  };
 
   const availabilityQuery = useQuery({
     queryKey: ['my-availability', employeeId, weekOf],
@@ -108,12 +123,29 @@ export function StaffAvailabilityPage() {
       {availabilityQuery.isError ? (
         <ErrorBanner error={availabilityQuery.error} />
       ) : (
-        <Grid
-          days={days}
-          byCell={byCell}
-          loading={availabilityQuery.isLoading}
-          onEdit={(date) => setEditingDate(date)}
-        />
+        <>
+          <div className="md:hidden">
+            <WeekStrip
+              weekOf={weekOf}
+              selectedDate={selectedDate}
+              onSelect={setSelectedDate}
+            />
+            <MobileDay
+              date={selectedDate}
+              byCell={byCell}
+              loading={availabilityQuery.isLoading}
+              onEdit={(date) => setEditingDate(date)}
+            />
+          </div>
+          <div className="hidden md:block">
+            <Grid
+              days={days}
+              byCell={byCell}
+              loading={availabilityQuery.isLoading}
+              onEdit={(date) => setEditingDate(date)}
+            />
+          </div>
+        </>
       )}
 
       {editingDate && (
@@ -177,16 +209,77 @@ function Hero({
   onWeekChange: (next: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-6">
-      <div className="min-w-0 flex-[1_1_420px]">
-        <p className="mb-2 text-[12px] font-semibold tracking-[0.12em] text-ink-3 uppercase">
+    <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end md:justify-between md:gap-6">
+      <div className="min-w-0 md:flex-[1_1_420px]">
+        <p className="mb-2 text-[11.5px] font-semibold tracking-[0.12em] text-ink-3 uppercase sm:text-[12px]">
           Week of {weekOf}
         </p>
-        <h1 className="font-display text-[48px] leading-[1.08] text-ink">
+        <h1 className="font-display text-[34px] leading-[1.08] text-ink sm:text-[40px] md:text-[48px]">
           My weekly <i className="text-terracotta">availability</i>
         </h1>
       </div>
       <WeekNavigator weekOf={weekOf} onChange={onWeekChange} />
+    </div>
+  );
+}
+
+function MobileDay({
+  date,
+  byCell,
+  loading,
+  onEdit,
+}: {
+  date: string;
+  byCell: Map<string, boolean>;
+  loading: boolean;
+  onEdit: (date: string) => void;
+}) {
+  const d = parseISODate(date);
+  const dayLabel = DAY_LABELS[(d.getDay() + 6) % 7];
+  return (
+    <div className="mt-4 overflow-hidden rounded-2xl border-[1.5px] border-line-soft bg-paper">
+      <div className="flex items-baseline justify-between border-b-[1.5px] border-line-soft bg-bg-2 px-4 py-3">
+        <span className="text-[11px] font-semibold tracking-[0.1em] text-ink-3 uppercase">
+          {dayLabel}
+        </span>
+        <span className="font-display text-[18px] leading-none">
+          {MONTHS[d.getMonth()]} {d.getDate()}
+        </span>
+      </div>
+      <div className="divide-y divide-line-soft">
+        {SHIFTS.map((shift) => {
+          const flag = byCell.get(`${date}|${shift}`);
+          return (
+            <div key={shift} className="flex items-center gap-3 px-4 py-3.5">
+              <div className="min-w-[88px]">
+                <div className="font-display text-[18px] leading-none">
+                  {SHIFT_LABEL[shift]}
+                </div>
+                <div className="mt-1 font-mono text-[11px] text-ink-3">
+                  {SHIFT_TIME[shift]}
+                </div>
+              </div>
+              <div className="flex-1">
+                {loading ? (
+                  <div className="h-11 w-full animate-pulse rounded-md bg-bg-2" />
+                ) : (
+                  <ShiftCell flag={flag} />
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="border-t-[1.5px] border-line-soft bg-bg-2 p-3">
+        <button
+          type="button"
+          onClick={() => onEdit(date)}
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border-[1.5px] border-line-soft bg-paper text-[13px] font-medium text-ink-2 transition-colors hover:border-ink hover:text-ink"
+        >
+          <Calendar size={14} className="opacity-60" />
+          Edit this day
+        </button>
+      </div>
     </div>
   );
 }
