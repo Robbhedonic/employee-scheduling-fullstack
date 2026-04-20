@@ -1,12 +1,21 @@
 // get — return availability entries for an employee, filtered by date range
 
+// getAll — return availability entries across all employees, filtered by date range (employer view)
+
 // update — create or update availability entries for an employee
 
+import type { Prisma } from '@prisma/client';
 import prisma from '../lib/prisma.js';
 import type { UpdateAvailabilityInput } from '../schema.js';
 
 type GetAvailabilityParams = {
   employeeId: string;
+  weekOf?: string;
+  startDate?: string;
+  endDate?: string;
+};
+
+type GetAllAvailabilityParams = {
   weekOf?: string;
   startDate?: string;
   endDate?: string;
@@ -60,6 +69,32 @@ export async function getAvailability(params: GetAvailabilityParams) {
   const availability = await prisma.availability.findMany({
     where,
     orderBy: [{ date: 'asc' }, { shiftType: 'asc' }],
+  });
+
+  return { availability };
+}
+
+export async function getAllAvailability(params: GetAllAvailabilityParams) {
+  const where: Prisma.AvailabilityWhereInput = {};
+
+  if (params.weekOf) {
+    const { start, end } = getWeekRange(params.weekOf);
+    where.date = { gte: start, lte: end };
+  } else if (params.startDate || params.endDate) {
+    const dateRange: { gte?: Date; lte?: Date } = {};
+    if (params.startDate) dateRange.gte = new Date(params.startDate);
+    if (params.endDate) dateRange.lte = new Date(params.endDate);
+    where.date = dateRange;
+  }
+
+  const availability = await prisma.availability.findMany({
+    where,
+    include: {
+      employee: {
+        select: { id: true, firstName: true, lastName: true },
+      },
+    },
+    orderBy: [{ employeeId: 'asc' }, { date: 'asc' }, { shiftType: 'asc' }],
   });
 
   return { availability };

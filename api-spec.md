@@ -40,6 +40,20 @@ Authenticate a user (employer or employee).
 }
 ```
 
+For users with role `EMPLOYEE`, the response also includes their `Employee.id` so the frontend can call `/availability/:employeeId` and `/schedule?employeeId=...` without an extra round trip:
+
+```json
+{
+  "token": "eyJhbG...",
+  "user": {
+    "id": "uuid",
+    "email": "juan.garcia@company.com",
+    "role": "EMPLOYEE",
+    "employeeId": "uuid"
+  }
+}
+```
+
 **Errors:**
 
 - `401` — Invalid credentials
@@ -122,6 +136,54 @@ The employer sets an initial password and shares it with the employee.
 
 ---
 
+### PUT /employees/:id
+
+Update an existing employee. Employer only.
+Send any subset of the updatable fields (must include at least one).
+Send `null` on `phone`, `position`, or `avatar` to clear them.
+
+**Updatable fields:** `firstName`, `lastName`, `email`, `password`, `phone`, `position`, `avatar`.
+
+`email` updates the underlying User and must remain unique.
+`password` is hashed and replaces the current credential (employer-driven reset, no current-password challenge).
+
+**Request body (partial):**
+
+```json
+{
+  "firstName": "Erik",
+  "email": "erik.new@example.com",
+  "password": "new-secret",
+  "phone": null
+}
+```
+
+**Response 200:**
+
+```json
+{
+  "employee": {
+    "id": "uuid",
+    "firstName": "Erik",
+    "lastName": "Svensson",
+    "email": "erik.new@example.com",
+    "phone": null,
+    "position": "Chef",
+    "avatar": "https://..."
+  }
+}
+```
+
+**Errors:**
+
+- `400` — Validation error (no fields, invalid value, etc.)
+- `401` — Not authenticated
+- `403` — Not an employer
+- `404` — Employee not found
+- `409` — Email already exists
+
+---
+
 ### GET /employees/:id
 
 Get a single employee's profile. Employer only.
@@ -151,6 +213,48 @@ Get a single employee's profile. Employer only.
 ---
 
 ## Availability
+
+### GET /availability
+
+List availability entries for **all employees** in a date range. Employer only.
+Used to render the per-employee availability overview without N+1 requests.
+
+**Query params:**
+
+- `weekOf` — ISO date for the Monday of a week (returns 7 days)
+- `startDate` / `endDate` — alternative explicit range
+- All filters are optional; omit them to fetch every entry (use sparingly)
+
+**Response 200:**
+
+```json
+{
+  "availability": [
+    {
+      "id": "uuid",
+      "employeeId": "uuid",
+      "date": "2026-04-06",
+      "shiftType": "MORNING",
+      "isAvailable": true,
+      "createdAt": "...",
+      "updatedAt": "...",
+      "employee": {
+        "id": "uuid",
+        "firstName": "Erik",
+        "lastName": "Svensson"
+      }
+    }
+  ]
+}
+```
+
+**Errors:**
+
+- `400` — Validation error (invalid date, conflicting filters)
+- `401` — Not authenticated
+- `403` — Not an employer
+
+---
 
 ### GET /availability/:employeeId
 
@@ -312,3 +416,18 @@ Accepts a list of entries to create or update.
 - `400` — Validation error
 - `403` — Not an employer
 - `404` — Employee not found
+
+---
+
+### DELETE /schedule/:id
+
+Remove a single schedule entry. Employer only.
+Used to unassign an employee from a shift.
+
+**Response 204:** No body.
+
+**Errors:**
+
+- `401` — Not authenticated
+- `403` — Not an employer
+- `404` — Schedule entry not found

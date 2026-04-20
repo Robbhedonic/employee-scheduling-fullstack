@@ -86,8 +86,7 @@ npm run format      # auto-fix Prettier issues
 **Frontend** (from `frontend/`):
 
 ```bash
-npm run lint        # ESLint check
-npm run lint:fix    # auto-fix
+npm run lint        # ESLint check (Prettier runs as an ESLint rule)
+npm run lint:fix    # auto-fix lint + formatting
+npm run build       # tsc -b + vite build (typecheck happens here)
 ```
-
-(Frontend doesn't yet have the combined `check` / `typecheck` / `format` scripts. Align with backend when convenient.)

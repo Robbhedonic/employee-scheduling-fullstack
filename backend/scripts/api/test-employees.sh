@@ -103,4 +103,77 @@ request POST /employees --auth "$employer_token" --data \
   "{\"firstName\":\"Dup\",\"lastName\":\"User\",\"email\":\"$EMPLOYER_EMAIL\",\"password\":\"secret\"}"
 assert_status 409 "duplicate email is rejected with 409"
 
+section "PUT /employees/:id — happy path"
+
+# Create a fresh target so we don't mutate the seed.
+update_email="update-$(date +%s)-$RANDOM@example.com"
+request POST /employees --auth "$employer_token" --data \
+  "{\"firstName\":\"Update\",\"lastName\":\"Target\",\"email\":\"$update_email\",\"password\":\"secret123\",\"phone\":\"070-111\",\"position\":\"Tester\"}"
+update_id=$(printf '%s' "$RESPONSE_BODY" | jq -r '.employee.id')
+
+request PUT "/employees/$update_id" --auth "$employer_token" --data \
+  '{"position":"Head Tester"}'
+assert_status 200 "employer can update an employee"
+assert_json_field '.employee.position' 'Head Tester' "position is updated"
+assert_json_field '.employee.firstName' 'Update' "firstName is unchanged"
+
+request PUT "/employees/$update_id" --auth "$employer_token" --data '{"phone":null}'
+assert_status 200 "nullable field can be cleared"
+assert_json_field '.employee.phone' 'null' "phone is now null"
+
+section "PUT /employees/:id — authorization"
+
+request PUT "/employees/$update_id" --auth "$employee_token" --data \
+  '{"position":"Hacker"}'
+assert_status 403 "employee cannot update"
+
+section "PUT /employees/:id — not found"
+
+request PUT "/employees/00000000-0000-0000-0000-000000000000" --auth "$employer_token" --data \
+  '{"position":"Ghost"}'
+assert_status 404 "unknown uuid returns 404"
+
+section "PUT /employees/:id — email update"
+
+new_email_for_update="updated-$(date +%s)-$RANDOM@example.com"
+request PUT "/employees/$update_id" --auth "$employer_token" --data \
+  "{\"email\":\"$new_email_for_update\"}"
+assert_status 200 "email can be updated"
+assert_json_field '.employee.email' "$new_email_for_update" "response reflects new email"
+
+request PUT "/employees/$update_id" --auth "$employer_token" --data \
+  "{\"email\":\"$EMPLOYER_EMAIL\"}"
+assert_status 409 "duplicate email is rejected with 409"
+
+section "PUT /employees/:id — password update"
+
+new_password="newpass-$(date +%s)"
+request PUT "/employees/$update_id" --auth "$employer_token" --data \
+  "{\"password\":\"$new_password\"}"
+assert_status 200 "password can be updated"
+
+new_token=$(login "$new_email_for_update" "$new_password")
+if [ -n "$new_token" ]; then
+  pass "can login with the updated password"
+else
+  fail "could not login with the updated password"
+fi
+
+section "PUT /employees/:id — validation"
+
+request PUT "/employees/$update_id" --auth "$employer_token" --data '{}'
+assert_status 400 "empty body is rejected"
+
+request PUT "/employees/$update_id" --auth "$employer_token" --data '{"firstName":""}'
+assert_status 400 "empty string is rejected"
+
+request PUT "/employees/$update_id" --auth "$employer_token" --data '{"avatar":"not-a-url"}'
+assert_status 400 "invalid avatar url is rejected"
+
+request PUT "/employees/$update_id" --auth "$employer_token" --data '{"email":"not-an-email"}'
+assert_status 400 "invalid email format is rejected"
+
+request PUT "/employees/$update_id" --auth "$employer_token" --data '{"password":""}'
+assert_status 400 "empty password is rejected"
+
 summary

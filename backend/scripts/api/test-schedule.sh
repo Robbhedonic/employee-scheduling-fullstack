@@ -145,4 +145,44 @@ request PUT /schedule --auth "$employer_token" --data \
   "{\"entries\":[{\"date\":\"$thursday\",\"shiftType\":\"MORNING\",\"employeeId\":\"00000000-0000-0000-0000-000000000000\"}]}"
 assert_status 404 "unknown employeeId returns 404"
 
+section "DELETE /schedule/:id — happy path"
+
+# Create something deletable.
+request PUT /schedule --auth "$employer_token" --data \
+  "{\"entries\":[{\"date\":\"$thursday\",\"shiftType\":\"NIGHT\",\"employeeId\":\"$juan_id\"}]}"
+delete_id=$(printf '%s' "$RESPONSE_BODY" | jq -r '.schedule[0].id')
+
+request DELETE "/schedule/$delete_id" --auth "$employer_token"
+assert_status 204 "employer can delete a schedule entry"
+
+# Second delete should 404 since it's already gone.
+request DELETE "/schedule/$delete_id" --auth "$employer_token"
+assert_status 404 "deleting an already-deleted entry returns 404"
+
+section "DELETE /schedule/:id — authorization"
+
+# Create a fresh entry to attempt as employee.
+request PUT /schedule --auth "$employer_token" --data \
+  "{\"entries\":[{\"date\":\"$thursday\",\"shiftType\":\"NIGHT\",\"employeeId\":\"$juan_id\"}]}"
+auth_test_id=$(printf '%s' "$RESPONSE_BODY" | jq -r '.schedule[0].id')
+
+request DELETE "/schedule/$auth_test_id" --auth "$juan_token"
+assert_status 403 "employee cannot delete a schedule entry"
+
+# Cleanup.
+request DELETE "/schedule/$auth_test_id" --auth "$employer_token"
+
+section "DELETE /schedule/:id — not found"
+
+request DELETE "/schedule/00000000-0000-0000-0000-000000000000" --auth "$employer_token"
+assert_status 404 "unknown uuid returns 404"
+
+request DELETE "/schedule/not-a-uuid" --auth "$employer_token"
+# Either 404 or 400 is defensible; 500 is a bug.
+if [ "$RESPONSE_STATUS" = "404" ] || [ "$RESPONSE_STATUS" = "400" ]; then
+  pass "malformed id is rejected (status $RESPONSE_STATUS)"
+else
+  fail "malformed id should return 404 or 400, got $RESPONSE_STATUS. Body: $RESPONSE_BODY"
+fi
+
 summary

@@ -2,7 +2,9 @@
 
 // update — create or update schedule entries, assigning employees to shifts
 
-import type { Prisma } from '@prisma/client';
+// deleteScheduleEntry — remove a single schedule entry by id; returns true if deleted, false if not found
+
+import { Prisma } from '@prisma/client';
 import prisma from '../lib/prisma.js';
 import type { UpdateScheduleInput } from '../schema.js';
 
@@ -171,4 +173,20 @@ export async function updateSchedule(input: UpdateScheduleInput) {
   });
 
   return { schedule: rows.map(toScheduleView) };
+}
+
+export async function deleteScheduleEntry(id: string): Promise<boolean> {
+  try {
+    await prisma.scheduleEntry.delete({ where: { id } });
+    return true;
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2025'
+    ) {
+      return false;
+    }
+
+    throw error;
+  }
 }

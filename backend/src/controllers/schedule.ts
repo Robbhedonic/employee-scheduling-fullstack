@@ -1,6 +1,10 @@
 import type { RequestHandler } from 'express';
 import type { ScheduleQueryInput, UpdateScheduleInput } from '../schema.js';
-import { getSchedule, updateSchedule } from '../services/schedule.js';
+import {
+  deleteScheduleEntry,
+  getSchedule,
+  updateSchedule,
+} from '../services/schedule.js';
 
 export const get: RequestHandler<
   Record<string, never>,
@@ -55,6 +59,24 @@ export const update: RequestHandler<
       return;
     }
 
+    next(error);
+  }
+};
+
+export const remove: RequestHandler<{ id: string }> = async (
+  req,
+  res,
+  next,
+) => {
+  try {
+    const deleted = await deleteScheduleEntry(req.params.id);
+    if (!deleted) {
+      res.status(404).json({ error: 'Schedule entry not found' });
+      return;
+    }
+
+    res.status(204).end();
+  } catch (error) {
     next(error);
   }
 };

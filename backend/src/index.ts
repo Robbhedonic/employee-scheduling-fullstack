@@ -1,3 +1,4 @@
+import cors from 'cors';
 import express from 'express';
 import authRoutes from './routes/auth.js';
 import employeeRoutes from './routes/employees.js';
@@ -20,9 +21,32 @@ for (const key of REQUIRED_ENV) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+// Allow the frontend to call the API:
+// - explicit allowlist via CORS_ORIGIN (comma-separated) for prod
+// - any http://localhost:* in dev so Vite's port fallback doesn't break us
+const explicitOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+const allowAnyLocalhost = process.env.NODE_ENV !== 'production';
+
+// Log every inbound request before any middleware can short-circuit it
+// (e.g. CORS preflight, CORS rejection, JSON parse errors).
 app.use(requestLogger);
-// TODO: app.use(cors()) — needed for frontend on a different port
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Same-origin requests (curl, Postman) have no Origin header - allow them.
+      if (!origin) return callback(null, true);
+      if (explicitOrigins.includes(origin)) return callback(null, true);
+      if (allowAnyLocalhost && /^http:\/\/localhost:\d+$/.test(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
+  }),
+);
+app.use(express.json());
 
 // Routes
 app.use('/auth', authRoutes);

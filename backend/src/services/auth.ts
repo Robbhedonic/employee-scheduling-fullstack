@@ -11,6 +11,7 @@ type LoginResult = {
     id: string;
     email: string;
     role: 'EMPLOYER' | 'EMPLOYEE';
+    employeeId?: string;
   };
 };
 
@@ -19,6 +20,7 @@ export async function login(input: LoginInput): Promise<LoginResult> {
 
   const user = await prisma.user.findUnique({
     where: { email },
+    include: { employee: { select: { id: true } } },
   });
 
   if (!user) {
@@ -43,6 +45,7 @@ export async function login(input: LoginInput): Promise<LoginResult> {
       id: user.id,
       email: user.email,
       role: user.role,
+      ...(user.employee ? { employeeId: user.employee.id } : {}),
     },
   };
 }

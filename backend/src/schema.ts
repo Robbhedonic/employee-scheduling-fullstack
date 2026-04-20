@@ -5,6 +5,8 @@
 
 // createEmployeeSchema    — POST /employees (firstName, lastName, email, password, phone?, position?, avatar?)
 
+// updateEmployeeSchema    — PUT /employees/:id (any subset of firstName, lastName, email, password, phone, position, avatar)
+
 // updateAvailabilitySchema — PUT /availability/:employeeId (entries: { date, shiftType, isAvailable }[])
 
 // updateScheduleSchema    — PUT /schedule (entries: { date, shiftType, employeeId }[])
@@ -31,6 +33,22 @@ export const createEmployeeSchema = z.object({
 });
 
 export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>;
+
+export const updateEmployeeSchema = z
+  .object({
+    firstName: z.string().min(1).optional(),
+    lastName: z.string().min(1).optional(),
+    email: z.email().optional(),
+    password: z.string().min(1).optional(),
+    phone: z.string().min(1).nullable().optional(),
+    position: z.string().min(1).nullable().optional(),
+    avatar: z.url().nullable().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one field must be provided',
+  });
+
+export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>;
 
 export const updateAvailabilitySchema = z.object({
   entries: z

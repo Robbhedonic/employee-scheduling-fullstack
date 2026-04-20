@@ -23,4 +23,12 @@ router.put(
   scheduleController.update,
 );
 
+// DELETE /:id — employer only, unassign a single schedule entry → scheduleController.remove
+router.delete(
+  '/:id',
+  authenticate,
+  requireRole('EMPLOYER'),
+  scheduleController.remove,
+);
+
 export default router;

@@ -3,8 +3,9 @@ import {
   createEmployeeRecord,
   getAllEmployees,
   getEmployeeById,
+  updateEmployee,
 } from '../services/employees.js';
-import type { CreateEmployeeInput } from '../schema.js';
+import type { CreateEmployeeInput, UpdateEmployeeInput } from '../schema.js';
 
 export const getAll: RequestHandler = async (_req, res, next) => {
   try {
@@ -47,6 +48,29 @@ export const getById: RequestHandler<{ id: string }> = async (
 
     res.status(200).json({ employee });
   } catch (error) {
+    next(error);
+  }
+};
+
+export const update: RequestHandler<
+  { id: string },
+  unknown,
+  UpdateEmployeeInput
+> = async (req, res, next) => {
+  try {
+    const employee = await updateEmployee(req.params.id, req.body);
+    if (!employee) {
+      res.status(404).json({ error: 'Employee not found' });
+      return;
+    }
+
+    res.status(200).json({ employee });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Email already exists') {
+      res.status(409).json({ error: 'Email already exists' });
+      return;
+    }
+
     next(error);
   }
 };

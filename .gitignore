@@ -28,3 +28,6 @@ logs/
 
 # Project input docs (not for version control)
 input-docs/
+
+# playwright-cli session artifacts
+.playwright-cli/

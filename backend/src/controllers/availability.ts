@@ -18,6 +18,25 @@ async function employeeOwnsAvailability(
   return employee?.id === targetEmployeeId;
 }
 
+export const getAll: RequestHandler<
+  Record<string, never>,
+  unknown,
+  never,
+  AvailabilityQueryInput
+> = async (req, res, next) => {
+  try {
+    const { weekOf, startDate, endDate } = req.query;
+    const result = await availabilityService.getAllAvailability({
+      weekOf,
+      startDate,
+      endDate,
+    });
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const get: RequestHandler<
   { employeeId: string },
   unknown,
