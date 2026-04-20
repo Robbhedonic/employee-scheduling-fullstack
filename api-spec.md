@@ -40,6 +40,20 @@ Authenticate a user (employer or employee).
 }
 ```
 
+For users with role `EMPLOYEE`, the response also includes their `Employee.id` so the frontend can call `/availability/:employeeId` and `/schedule?employeeId=...` without an extra round trip:
+
+```json
+{
+  "token": "eyJhbG...",
+  "user": {
+    "id": "uuid",
+    "email": "juan.garcia@company.com",
+    "role": "EMPLOYEE",
+    "employeeId": "uuid"
+  }
+}
+```
+
 **Errors:**
 
 - `401` — Invalid credentials
