@@ -13,13 +13,8 @@ import {
   SHIFT_TIME,
   type ShiftType,
 } from '@/lib/colors';
-import {
-  defaultSelectedDay,
-  parseISODate,
-  thisMonday,
-  toISODate,
-  weekDates,
-} from '@/lib/dates';
+import { parseISODate, toISODate, weekDates } from '@/lib/dates';
+import { useWeekParam } from '@/lib/useWeekParam';
 
 const SHIFTS: ShiftType[] = ['MORNING', 'AFTERNOON', 'NIGHT'];
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -66,19 +61,11 @@ type AvailabilityEntry = {
 export function JobSchedulePage() {
   const { token } = useAuth();
   const queryClient = useQueryClient();
-  const [weekOf, setWeekOfRaw] = useState(thisMonday());
-  const [selectedDate, setSelectedDate] = useState(() =>
-    defaultSelectedDay(thisMonday()),
-  );
+  const { weekOf, setWeekOf, selectedDate, setSelectedDate } = useWeekParam();
   const [picker, setPicker] = useState<{
     date: string;
     shiftType: ShiftType;
   } | null>(null);
-
-  const setWeekOf = (next: string) => {
-    setWeekOfRaw(next);
-    setSelectedDate(defaultSelectedDay(next));
-  };
 
   const employeesQuery = useQuery({
     queryKey: ['employees'],

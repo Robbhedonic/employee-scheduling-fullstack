@@ -1,17 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { WeekNavigator } from '@/components/WeekNavigator';
 import { WeekStrip } from '@/components/WeekStrip';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { SHIFT_LABEL, SHIFT_TIME, type ShiftType } from '@/lib/colors';
-import {
-  defaultSelectedDay,
-  parseISODate,
-  thisMonday,
-  toISODate,
-  weekDates,
-} from '@/lib/dates';
+import { parseISODate, toISODate, weekDates } from '@/lib/dates';
+import { useWeekParam } from '@/lib/useWeekParam';
 
 const SHIFTS: ShiftType[] = ['MORNING', 'AFTERNOON', 'NIGHT'];
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -45,15 +40,7 @@ type ScheduleEntry = {
 
 export function StaffSchedulePage() {
   const { token } = useAuth();
-  const [weekOf, setWeekOfRaw] = useState(thisMonday());
-  const [selectedDate, setSelectedDate] = useState(() =>
-    defaultSelectedDay(thisMonday()),
-  );
-
-  const setWeekOf = (next: string) => {
-    setWeekOfRaw(next);
-    setSelectedDate(defaultSelectedDay(next));
-  };
+  const { weekOf, setWeekOf, selectedDate, setSelectedDate } = useWeekParam();
 
   const scheduleQuery = useQuery({
     queryKey: ['my-schedule', weekOf],
@@ -88,6 +75,16 @@ export function StaffSchedulePage() {
         <ErrorBanner error={scheduleQuery.error} />
       ) : (
         <>
+          {!scheduleQuery.isLoading && shiftCount === 0 && (
+            <div className="rounded-2xl border-[1.5px] border-dashed border-line-soft p-6 text-center">
+              <p className="font-display text-[20px] text-ink">
+                No shifts assigned this week.
+              </p>
+              <p className="mt-1 text-[13px] text-ink-3">
+                Enjoy the time off, or check back later.
+              </p>
+            </div>
+          )}
           <div className="md:hidden">
             <WeekStrip
               weekOf={weekOf}

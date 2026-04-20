@@ -51,6 +51,11 @@ export async function apiFetch<T>(
       payload && typeof payload === 'object' && 'details' in payload
         ? payload.details
         : undefined;
+    if (res.status === 401 && token) {
+      // Token rejected by the server (expired or revoked). Tell the auth layer
+      // so it can drop the session; RequireAuth will then redirect to /login.
+      window.dispatchEvent(new Event('auth:expired'));
+    }
     throw new ApiError(res.status, message, details);
   }
 

@@ -7,13 +7,8 @@ import { Button } from '@/components/ui/button';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { SHIFT_LABEL, SHIFT_TIME, type ShiftType } from '@/lib/colors';
-import {
-  defaultSelectedDay,
-  parseISODate,
-  thisMonday,
-  toISODate,
-  weekDates,
-} from '@/lib/dates';
+import { parseISODate, toISODate, weekDates } from '@/lib/dates';
+import { useWeekParam } from '@/lib/useWeekParam';
 
 const SHIFTS: ShiftType[] = ['MORNING', 'AFTERNOON', 'NIGHT'];
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -57,16 +52,8 @@ export function StaffAvailabilityPage() {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
   const employeeId = user?.employeeId;
-  const [weekOf, setWeekOfRaw] = useState(thisMonday());
-  const [selectedDate, setSelectedDate] = useState(() =>
-    defaultSelectedDay(thisMonday()),
-  );
+  const { weekOf, setWeekOf, selectedDate, setSelectedDate } = useWeekParam();
   const [editingDate, setEditingDate] = useState<string | null>(null);
-
-  const setWeekOf = (next: string) => {
-    setWeekOfRaw(next);
-    setSelectedDate(defaultSelectedDay(next));
-  };
 
   const availabilityQuery = useQuery({
     queryKey: ['my-availability', employeeId, weekOf],

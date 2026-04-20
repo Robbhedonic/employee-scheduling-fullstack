@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Avatar } from '@/components/Avatar';
 import { WeekNavigator } from '@/components/WeekNavigator';
@@ -6,13 +6,8 @@ import { WeekStrip } from '@/components/WeekStrip';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { type ShiftType } from '@/lib/colors';
-import {
-  defaultSelectedDay,
-  parseISODate,
-  thisMonday,
-  toISODate,
-  weekDates,
-} from '@/lib/dates';
+import { parseISODate, toISODate, weekDates } from '@/lib/dates';
+import { useWeekParam } from '@/lib/useWeekParam';
 
 const SHIFTS: ShiftType[] = ['MORNING', 'AFTERNOON', 'NIGHT'];
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -63,15 +58,7 @@ type CellStatus =
 
 export function WorkSchedulePage() {
   const { token } = useAuth();
-  const [weekOf, setWeekOfRaw] = useState(thisMonday());
-  const [selectedDate, setSelectedDate] = useState(() =>
-    defaultSelectedDay(thisMonday()),
-  );
-
-  const setWeekOf = (next: string) => {
-    setWeekOfRaw(next);
-    setSelectedDate(defaultSelectedDay(next));
-  };
+  const { weekOf, setWeekOf, selectedDate, setSelectedDate } = useWeekParam();
 
   const employeesQuery = useQuery({
     queryKey: ['employees'],
